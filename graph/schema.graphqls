@@ -10,6 +10,7 @@ type Property {
 
 type Jwt {
   user: String!
+  roles: [String!]!
   properties: [Property!]!
 }
 

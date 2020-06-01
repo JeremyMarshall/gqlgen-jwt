@@ -3,11 +3,16 @@
 package model
 
 type Jwt struct {
-	User       string    `json:"user"`
-	Properties []*string `json:"properties"`
+	User       string      `json:"user"`
+	Properties []*Property `json:"properties"`
 }
 
 type NewJwt struct {
 	User  string   `json:"user"`
 	Roles []string `json:"roles"`
+}
+
+type Property struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }

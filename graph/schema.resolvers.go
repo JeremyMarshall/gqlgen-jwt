@@ -10,8 +10,7 @@ import (
 
 	"github.com/JeremyMarshall/gql-jwt/graph/generated"
 	"github.com/JeremyMarshall/gql-jwt/graph/model"
-
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -19,17 +18,18 @@ const (
 )
 
 func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (string, error) {
-		// Create a new token object, specifying signing method and the claims
-		// you would like it to contain.
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"foo": "bar",
-			"nbf": time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
-		})
+	// Create a new token object, specifying signing method and the claims
+	// you would like it to contain.
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user": input.User,
+		"roles": input.Roles,
+		"nbf": time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
+	})
 
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString([]byte(JWT_SECRET))
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString([]byte(JWT_SECRET))
 
-		return tokenString, err
+	return tokenString, err
 }
 
 func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, error) {
@@ -49,14 +49,17 @@ func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, erro
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
 
-		ret := &model.Jwt{User:"", Properties: make([]*string, 0)}
+		ret := &model.Jwt{Properties: make([]*model.Property, 0)}
 
-		for _,v := range claims {
-			val :=  fmt.Sprint(v)
-			ret.Properties = append(ret.Properties, &val )
+		for k, v := range claims {
+			val := fmt.Sprint(v)
+			if k == "user" {
+				ret.User = val
+			} else {
+				ret.Properties = append(ret.Properties, &model.Property{Name: k, Value: val,})
+			}
 		}
 		return ret, nil
-		// fmt.Println(claims["foo"], claims["nbf"])
 	} else {
 		return nil, err
 	}
