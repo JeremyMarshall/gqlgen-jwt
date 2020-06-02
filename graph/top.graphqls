@@ -1,0 +1,13 @@
+type Mutation {
+  createJwt(input: NewJwt!): String!
+
+  upsertRole(input: AddRole!): Role!
+  deleteRole(input: DeleteRole!): Boolean!
+  deletePermission(input: DeletePermission!): Boolean! 
+}
+
+type Query {
+  jwt(token: String!): Jwt!
+  permission(name: String): [Permission]!
+  role(name: String): [Role]!
+}

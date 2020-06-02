@@ -1,22 +1,12 @@
 package graph
 
-// This file will be automatically regenerated based on the schema, any resolver implementations
-// will be copied through when generating and any unknown code will be moved to the end.
-
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/JeremyMarshall/gql-jwt/graph/generated"
 	"github.com/JeremyMarshall/gql-jwt/graph/model"
 	jwt "github.com/dgrijalva/jwt-go"
-)
-
-const (
-	JWT_SECRET  = "secret"
-	ISSUER      = "issuer"
-	EXPIRY_MINS = 5
 )
 
 func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (string, error) {
@@ -87,13 +77,3 @@ func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, erro
 	}
 	return nil, err
 }
-
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
-

@@ -14,15 +14,8 @@ type Jwt {
   properties: [Property!]!
 }
 
-type Query {
-  jwt(token: String!): Jwt!
-}
-
 input NewJwt {
   user: String!
   roles: [String!]!
 }
 
-type Mutation {
-  createJwt(input: NewJwt!): String!
-}
