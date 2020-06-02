@@ -45,6 +45,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Jwt struct {
 		Properties func(childComplexity int) int
+		Roles      func(childComplexity int) int
 		User       func(childComplexity int) int
 	}
 
@@ -90,6 +91,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Jwt.Properties(childComplexity), true
+
+	case "Jwt.roles":
+		if e.complexity.Jwt.Roles == nil {
+			break
+		}
+
+		return e.complexity.Jwt.Roles(childComplexity), true
 
 	case "Jwt.user":
 		if e.complexity.Jwt.User == nil {
@@ -212,6 +220,7 @@ type Property {
 
 type Jwt {
   user: String!
+  roles: [String!]!
   properties: [Property!]!
 }
 
@@ -344,6 +353,40 @@ func (ec *executionContext) _Jwt_user(ctx context.Context, field graphql.Collect
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Jwt_roles(ctx context.Context, field graphql.CollectedField, obj *model.Jwt) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Jwt",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Jwt_properties(ctx context.Context, field graphql.CollectedField, obj *model.Jwt) (ret graphql.Marshaler) {
@@ -1699,6 +1742,11 @@ func (ec *executionContext) _Jwt(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = graphql.MarshalString("Jwt")
 		case "user":
 			out.Values[i] = ec._Jwt_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "roles":
+			out.Values[i] = ec._Jwt_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

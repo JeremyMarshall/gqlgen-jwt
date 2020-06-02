@@ -4,6 +4,7 @@ package model
 
 type Jwt struct {
 	User       string      `json:"user"`
+	Roles      []string    `json:"roles"`
 	Properties []*Property `json:"properties"`
 }
 
