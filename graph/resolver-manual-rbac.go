@@ -19,7 +19,7 @@ func (r *mutationResolver) DeletePermission(ctx context.Context, input model.Del
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Permission(ctx context.Context, name *string) ([]*model.Permission, error) {
+func (r *queryResolver) Permission(ctx context.Context, name *string) ([]*string, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -32,16 +32,16 @@ func (r *queryResolver) Role(ctx context.Context, name *string) ([]*model.Role, 
 	for k, v := range roles {
 		r := &model.Role{
 			Name:        k,
-			Permissions: make([]*model.Permission, 0),
-			Hierarchy:   make([]*model.Hierarchy, 0),
+			Permissions: make([]*string, 0),
+			Parents:     make([]*string, 0),
 		}
 
 		for _, p := range v.Permissions {
-			r.Permissions = append(r.Permissions, &model.Permission{Name: p})
+			r.Permissions = append(r.Permissions, &p)
 		}
 
 		for _, p := range v.Parents {
-			r.Hierarchy = append(r.Hierarchy, &model.Hierarchy{Name: p})
+			r.Parents = append(r.Parents, &p)
 		}
 
 		ret = append(ret, r)

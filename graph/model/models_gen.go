@@ -2,12 +2,6 @@
 
 package model
 
-import (
-	"fmt"
-	"io"
-	"strconv"
-)
-
 type AddRole struct {
 	Name        string    `json:"name"`
 	Permissions []*string `json:"permissions"`
@@ -17,18 +11,11 @@ type AddRole struct {
 type DeletePermission struct {
 	Name       string `json:"name"`
 	Permission string `json:"permission"`
-	Cascade    bool   `json:"cascade"`
 }
 
 type DeleteRole struct {
 	Name    string `json:"name"`
 	Cascade bool   `json:"cascade"`
-}
-
-type Hierarchy struct {
-	Name         string       `json:"name"`
-	Relationship Relationship `json:"relationship"`
-	Level        *int         `json:"level"`
 }
 
 type Jwt struct {
@@ -42,58 +29,13 @@ type NewJwt struct {
 	Roles []string `json:"roles"`
 }
 
-type Permission struct {
-	Name string `json:"name"`
-}
-
 type Property struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
 type Role struct {
-	Name        string        `json:"name"`
-	Permissions []*Permission `json:"permissions"`
-	Hierarchy   []*Hierarchy  `json:"hierarchy"`
-}
-
-type Relationship string
-
-const (
-	RelationshipParent Relationship = "PARENT"
-	RelationshipChild  Relationship = "CHILD"
-)
-
-var AllRelationship = []Relationship{
-	RelationshipParent,
-	RelationshipChild,
-}
-
-func (e Relationship) IsValid() bool {
-	switch e {
-	case RelationshipParent, RelationshipChild:
-		return true
-	}
-	return false
-}
-
-func (e Relationship) String() string {
-	return string(e)
-}
-
-func (e *Relationship) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Relationship(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Relationship", str)
-	}
-	return nil
-}
-
-func (e Relationship) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	Name        string    `json:"name"`
+	Permissions []*string `json:"permissions"`
+	Parents     []*string `json:"parents"`
 }

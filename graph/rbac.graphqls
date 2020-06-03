@@ -2,25 +2,11 @@
 #
 # https://gqlgen.com/getting-started/
 
-enum Relationship {
-	PARENT
-	CHILD
-}
-
-type Permission {
-  name: String!
-}
-
-type Hierarchy {
-  name: String!
-  relationship: Relationship!
-  level: Int
-}
 
 type Role {
   name: String!
-  permissions: [Permission]!
-  hierarchy: [Hierarchy]!
+  permissions(name: String): [String]
+  parents(name: String): [String]
 }
 
 input AddRole {
@@ -37,5 +23,4 @@ input DeleteRole {
 input DeletePermission {
   name: String!
   permission: String!
-  cascade: Boolean!
 }

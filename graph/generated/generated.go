@@ -43,12 +43,6 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	Hierarchy struct {
-		Level        func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Relationship func(childComplexity int) int
-	}
-
 	Jwt struct {
 		Properties func(childComplexity int) int
 		Roles      func(childComplexity int) int
@@ -60,10 +54,6 @@ type ComplexityRoot struct {
 		DeletePermission func(childComplexity int, input model.DeletePermission) int
 		DeleteRole       func(childComplexity int, input model.DeleteRole) int
 		UpsertRole       func(childComplexity int, input model.AddRole) int
-	}
-
-	Permission struct {
-		Name func(childComplexity int) int
 	}
 
 	Property struct {
@@ -78,8 +68,8 @@ type ComplexityRoot struct {
 	}
 
 	Role struct {
-		Hierarchy   func(childComplexity int) int
 		Name        func(childComplexity int) int
+		Parents     func(childComplexity int) int
 		Permissions func(childComplexity int) int
 	}
 }
@@ -92,7 +82,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Jwt(ctx context.Context, token string) (*model.Jwt, error)
-	Permission(ctx context.Context, name *string) ([]*model.Permission, error)
+	Permission(ctx context.Context, name *string) ([]*string, error)
 	Role(ctx context.Context, name *string) ([]*model.Role, error)
 }
 
@@ -110,27 +100,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
-
-	case "Hierarchy.level":
-		if e.complexity.Hierarchy.Level == nil {
-			break
-		}
-
-		return e.complexity.Hierarchy.Level(childComplexity), true
-
-	case "Hierarchy.name":
-		if e.complexity.Hierarchy.Name == nil {
-			break
-		}
-
-		return e.complexity.Hierarchy.Name(childComplexity), true
-
-	case "Hierarchy.relationship":
-		if e.complexity.Hierarchy.Relationship == nil {
-			break
-		}
-
-		return e.complexity.Hierarchy.Relationship(childComplexity), true
 
 	case "Jwt.properties":
 		if e.complexity.Jwt.Properties == nil {
@@ -201,13 +170,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpsertRole(childComplexity, args["input"].(model.AddRole)), true
 
-	case "Permission.name":
-		if e.complexity.Permission.Name == nil {
-			break
-		}
-
-		return e.complexity.Permission.Name(childComplexity), true
-
 	case "Property.name":
 		if e.complexity.Property.Name == nil {
 			break
@@ -258,19 +220,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Role(childComplexity, args["name"].(*string)), true
 
-	case "Role.hierarchy":
-		if e.complexity.Role.Hierarchy == nil {
-			break
-		}
-
-		return e.complexity.Role.Hierarchy(childComplexity), true
-
 	case "Role.name":
 		if e.complexity.Role.Name == nil {
 			break
 		}
 
 		return e.complexity.Role.Name(childComplexity), true
+
+	case "Role.parents":
+		if e.complexity.Role.Parents == nil {
+			break
+		}
+
+		return e.complexity.Role.Parents(childComplexity), true
 
 	case "Role.permissions":
 		if e.complexity.Role.Permissions == nil {
@@ -369,25 +331,11 @@ input NewJwt {
 #
 # https://gqlgen.com/getting-started/
 
-enum Relationship {
-	PARENT
-	CHILD
-}
-
-type Permission {
-  name: String!
-}
-
-type Hierarchy {
-  name: String!
-  relationship: Relationship!
-  level: Int
-}
 
 type Role {
   name: String!
-  permissions: [Permission]!
-  hierarchy: [Hierarchy]!
+  permissions: [String]
+  parents: [String]
 }
 
 input AddRole {
@@ -404,7 +352,6 @@ input DeleteRole {
 input DeletePermission {
   name: String!
   permission: String!
-  cascade: Boolean!
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/top.graphqls", Input: `type Mutation {
@@ -417,7 +364,7 @@ input DeletePermission {
 
 type Query {
   jwt(token: String!): Jwt!
-  permission(name: String): [Permission]!
+  permission(name: String): [String]!
   role(name: String): [Role]!
 }
 `, BuiltIn: false},
@@ -575,105 +522,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _Hierarchy_name(ctx context.Context, field graphql.CollectedField, obj *model.Hierarchy) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Hierarchy",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Hierarchy_relationship(ctx context.Context, field graphql.CollectedField, obj *model.Hierarchy) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Hierarchy",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Relationship, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Relationship)
-	fc.Result = res
-	return ec.marshalNRelationship2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRelationship(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Hierarchy_level(ctx context.Context, field graphql.CollectedField, obj *model.Hierarchy) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Hierarchy",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Level, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int)
-	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
-}
 
 func (ec *executionContext) _Jwt_user(ctx context.Context, field graphql.CollectedField, obj *model.Jwt) (ret graphql.Marshaler) {
 	defer func() {
@@ -941,40 +789,6 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Permission_name(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Permission",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Property_name(ctx context.Context, field graphql.CollectedField, obj *model.Property) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1120,9 +934,9 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Permission)
+	res := resTmp.([]*string)
 	fc.Result = res
-	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx, field.Selections, res)
+	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_role(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1293,17 +1107,14 @@ func (ec *executionContext) _Role_permissions(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Permission)
+	res := resTmp.([]*string)
 	fc.Result = res
-	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx, field.Selections, res)
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Role_hierarchy(ctx context.Context, field graphql.CollectedField, obj *model.Role) (ret graphql.Marshaler) {
+func (ec *executionContext) _Role_parents(ctx context.Context, field graphql.CollectedField, obj *model.Role) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1320,21 +1131,18 @@ func (ec *executionContext) _Role_hierarchy(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Hierarchy, nil
+		return obj.Parents, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Hierarchy)
+	res := resTmp.([]*string)
 	fc.Result = res
-	return ec.marshalNHierarchy2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐHierarchy(ctx, field.Selections, res)
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2440,12 +2248,6 @@ func (ec *executionContext) unmarshalInputDeletePermission(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "cascade":
-			var err error
-			it.Cascade, err = ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		}
 	}
 
@@ -2507,40 +2309,6 @@ func (ec *executionContext) unmarshalInputNewJwt(ctx context.Context, obj interf
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
-
-var hierarchyImplementors = []string{"Hierarchy"}
-
-func (ec *executionContext) _Hierarchy(ctx context.Context, sel ast.SelectionSet, obj *model.Hierarchy) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, hierarchyImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Hierarchy")
-		case "name":
-			out.Values[i] = ec._Hierarchy_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "relationship":
-			out.Values[i] = ec._Hierarchy_relationship(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "level":
-			out.Values[i] = ec._Hierarchy_level(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
 
 var jwtImplementors = []string{"Jwt"}
 
@@ -2611,33 +2379,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deletePermission":
 			out.Values[i] = ec._Mutation_deletePermission(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var permissionImplementors = []string{"Permission"}
-
-func (ec *executionContext) _Permission(ctx context.Context, sel ast.SelectionSet, obj *model.Permission) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, permissionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Permission")
-		case "name":
-			out.Values[i] = ec._Permission_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2774,14 +2515,8 @@ func (ec *executionContext) _Role(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "permissions":
 			out.Values[i] = ec._Role_permissions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "hierarchy":
-			out.Values[i] = ec._Role_hierarchy(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		case "parents":
+			out.Values[i] = ec._Role_parents(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3064,43 +2799,6 @@ func (ec *executionContext) unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshall�
 	return ec.unmarshalInputDeleteRole(ctx, v)
 }
 
-func (ec *executionContext) marshalNHierarchy2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐHierarchy(ctx context.Context, sel ast.SelectionSet, v []*model.Hierarchy) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOHierarchy2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐHierarchy(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
 func (ec *executionContext) marshalNJwt2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v model.Jwt) graphql.Marshaler {
 	return ec._Jwt(ctx, sel, &v)
 }
@@ -3117,43 +2815,6 @@ func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgql�
 
 func (ec *executionContext) unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx context.Context, v interface{}) (model.NewJwt, error) {
 	return ec.unmarshalInputNewJwt(ctx, v)
-}
-
-func (ec *executionContext) marshalNPermission2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx context.Context, sel ast.SelectionSet, v []*model.Permission) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOPermission2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalNProperty2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v model.Property) graphql.Marshaler {
@@ -3205,15 +2866,6 @@ func (ec *executionContext) marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋ
 		return graphql.Null
 	}
 	return ec._Property(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNRelationship2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRelationship(ctx context.Context, v interface{}) (model.Relationship, error) {
-	var res model.Relationship
-	return res, res.UnmarshalGQL(v)
-}
-
-func (ec *executionContext) marshalNRelationship2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRelationship(ctx context.Context, sel ast.SelectionSet, v model.Relationship) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) marshalNRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
@@ -3305,6 +2957,35 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	ret := make(graphql.Array, len(v))
 	for i := range v {
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
 	}
 
 	return ret
@@ -3557,51 +3238,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOHierarchy2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐHierarchy(ctx context.Context, sel ast.SelectionSet, v model.Hierarchy) graphql.Marshaler {
-	return ec._Hierarchy(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOHierarchy2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐHierarchy(ctx context.Context, sel ast.SelectionSet, v *model.Hierarchy) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Hierarchy(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
-	return graphql.UnmarshalInt(v)
-}
-
-func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	return graphql.MarshalInt(v)
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOInt2int(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec.marshalOInt2int(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOPermission2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx context.Context, sel ast.SelectionSet, v model.Permission) graphql.Marshaler {
-	return ec._Permission(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOPermission2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPermission(ctx context.Context, sel ast.SelectionSet, v *model.Permission) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Permission(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {

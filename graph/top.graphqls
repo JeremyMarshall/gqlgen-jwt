@@ -8,6 +8,6 @@ type Mutation {
 
 type Query {
   jwt(token: String!): Jwt!
-  permission(name: String): [Permission]!
+  permission(name: String): [String]!
   role(name: String): [Role]!
 }
