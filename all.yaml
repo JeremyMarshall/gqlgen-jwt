@@ -1,0 +1,28 @@
+permissions:
+- add-text
+- edit-text
+- insert-photo
+- add-photo
+- edit-photo
+- del-text
+- del-photo
+
+roles:
+    editor:
+        permissions:
+        - add-text
+        - edit-text
+        - insert-photo 
+    photographer:
+        permissions:
+        - add-photo
+        - edit-photo
+    chief-editor:
+        parents:
+        - editor
+        - photographer
+        permissions:
+        - del-text
+        - del-photo
+
+
