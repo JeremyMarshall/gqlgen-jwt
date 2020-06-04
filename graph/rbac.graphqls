@@ -5,8 +5,8 @@
 
 type Role {
   name: String!
-  permissions(name: String): [String]
-  parents(name: String): [String]
+  permissions: [String]
+  parents: [String]
 }
 
 input AddRole {

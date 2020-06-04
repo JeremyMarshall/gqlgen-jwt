@@ -1,4 +1,4 @@
-module github.com/JeremyMarshall/gql-jwt
+module github.com/JeremyMarshall/gqlgen-jwt
 
 go 1.13
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JeremyMarshall/gql-jwt/graph/model"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 	jwt "github.com/dgrijalva/jwt-go"
 )
 

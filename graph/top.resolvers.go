@@ -4,7 +4,7 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"github.com/JeremyMarshall/gql-jwt/graph/generated"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 )
 
 // Mutation returns generated.MutationResolver implementation.

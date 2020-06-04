@@ -1,6 +1,6 @@
 package graph
 
-import "github.com/JeremyMarshall/gql-jwt/rbac"
+import "github.com/JeremyMarshall/gqlgen-jwt/rbac"
 
 // This file will not be regenerated automatically.
 //

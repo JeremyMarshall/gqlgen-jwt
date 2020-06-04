@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JeremyMarshall/gql-jwt/graph/model"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 )
 
 func (r *mutationResolver) UpsertRole(ctx context.Context, input model.AddRole) (*model.Role, error) {
@@ -29,6 +29,7 @@ func (r *queryResolver) Role(ctx context.Context, name *string) ([]*model.Role, 
 	if err != nil {
 		return nil, err
 	}
+
 	for k, v := range roles {
 		r := &model.Role{
 			Name:        k,
@@ -36,15 +37,16 @@ func (r *queryResolver) Role(ctx context.Context, name *string) ([]*model.Role, 
 			Parents:     make([]*string, 0),
 		}
 
-		for _, p := range v.Permissions {
-			r.Permissions = append(r.Permissions, &p)
+		for i := range v.Permissions {
+			r.Permissions = append(r.Permissions, &v.Permissions[i])
 		}
 
-		for _, p := range v.Parents {
-			r.Parents = append(r.Parents, &p)
+		for i := range v.Parents {
+			r.Parents = append(r.Parents, &v.Parents[i])
 		}
 
 		ret = append(ret, r)
 	}
+
 	return ret, nil
 }

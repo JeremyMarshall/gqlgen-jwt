@@ -7,9 +7,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/JeremyMarshall/gql-jwt/graph"
-	"github.com/JeremyMarshall/gql-jwt/graph/generated"
-	"github.com/JeremyMarshall/gql-jwt/rbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac"
 )
 
 const defaultPort = "8088"
