@@ -2,7 +2,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 	"github.com/JeremyMarshall/gqlgen-jwt/rbac"
@@ -23,7 +22,7 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, input model.DeleteRol
 }
 
 func (r *mutationResolver) DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Rbac.DeletePermission(&input.Name, &input.Permission)
 }
 
 func (r *queryResolver) Permission(ctx context.Context, name *string) ([]*string, error) {

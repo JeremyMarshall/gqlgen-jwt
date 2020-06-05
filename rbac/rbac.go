@@ -179,9 +179,8 @@ func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Rol
 
 func (r *Rbac) DeleteRole(name *string) (bool, error) {
 	r.mutex.Lock()
-	var ok bool
 
-	if _, ok = r.yamlAll.Roles[*name]; !ok {
+	if _, ok := r.yamlAll.Roles[*name]; !ok {
 		r.mutex.Unlock()
 		return false, fmt.Errorf("Role %s not found", *name)
 	}
@@ -190,4 +189,31 @@ func (r *Rbac) DeleteRole(name *string) (bool, error) {
 
 	r.mutex.Unlock()
 	return true, nil
+}
+
+func (r *Rbac) DeletePermission(name *string, permission *string) (bool, error) {
+	r.mutex.Lock()
+	var role Role
+	var ok bool
+
+	if role, ok = r.yamlAll.Roles[*name]; !ok {
+		r.mutex.Unlock()
+		return false, fmt.Errorf("Role %s not found", *name)
+	}
+
+	perms := r.yamlAll.Roles[*name].Permissions
+
+	for i, p := range perms {
+		if p == *permission {
+			perms = append(perms[:i], perms[i+1:]...)
+			role.Permissions = perms
+			r.yamlAll.Roles[*name] = role
+			r.mutex.Unlock()
+			return true, nil
+		}
+	}
+
+	r.mutex.Unlock()
+	return false, fmt.Errorf("Permission %s not found", *permission)
+
 }

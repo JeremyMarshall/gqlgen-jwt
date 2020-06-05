@@ -9,10 +9,10 @@ api: bin fmt vet
 server: build
 	PORT=${PORT} go run ./server.go ${SERVEROPTS}
 
-graph/*.resolver.go: graph/*.graphqls gqlgen.yml
-	cd graph; go run github.com/99designs/gqlgen --verbose
+graph/resolver.go: graph/*.graphqls gqlgen.yml
+	go run github.com/99designs/gqlgen --verbose
 
-build:  bin tidy fmt vet
+build: bin tidy fmt vet
 
 tidy:
 	go mod tidy

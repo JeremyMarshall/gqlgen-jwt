@@ -14,8 +14,7 @@ type DeletePermission struct {
 }
 
 type DeleteRole struct {
-	Name    string `json:"name"`
-	Cascade bool   `json:"cascade"`
+	Name string `json:"name"`
 }
 
 type Jwt struct {

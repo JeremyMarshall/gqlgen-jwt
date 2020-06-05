@@ -15,7 +15,11 @@ input AddRole {
   parents: [String]
 }
 
-input Delete {
+input DeleteRole {
   name: String!
 }
 
+input DeletePermission {
+  name: String!
+  permission: String!
+}

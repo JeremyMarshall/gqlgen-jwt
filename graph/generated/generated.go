@@ -346,14 +346,12 @@ input AddRole {
 
 input DeleteRole {
   name: String!
-  cascade: Boolean!
 }
 
 input DeletePermission {
   name: String!
   permission: String!
-}
-`, BuiltIn: false},
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/top.graphqls", Input: `type Mutation {
   createJwt(input: NewJwt!): String!
 
@@ -380,7 +378,7 @@ func (ec *executionContext) field_Mutation_createJwt_args(ctx context.Context, r
 	args := map[string]interface{}{}
 	var arg0 model.NewJwt
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx, tmp)
+		arg0, err = ec.unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -394,7 +392,7 @@ func (ec *executionContext) field_Mutation_deletePermission_args(ctx context.Con
 	args := map[string]interface{}{}
 	var arg0 model.DeletePermission
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNDeletePermission2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐDeletePermission(ctx, tmp)
+		arg0, err = ec.unmarshalNDeletePermission2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeletePermission(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -408,7 +406,7 @@ func (ec *executionContext) field_Mutation_deleteRole_args(ctx context.Context, 
 	args := map[string]interface{}{}
 	var arg0 model.DeleteRole
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx, tmp)
+		arg0, err = ec.unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -422,7 +420,7 @@ func (ec *executionContext) field_Mutation_upsertRole_args(ctx context.Context, 
 	args := map[string]interface{}{}
 	var arg0 model.AddRole
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐAddRole(ctx, tmp)
+		arg0, err = ec.unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐAddRole(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -622,7 +620,7 @@ func (ec *executionContext) _Jwt_properties(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*model.Property)
 	fc.Result = res
-	return ec.marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPropertyᚄ(ctx, field.Selections, res)
+	return ec.marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPropertyᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -704,7 +702,7 @@ func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Role)
 	fc.Result = res
-	return ec.marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -895,7 +893,7 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(*model.Jwt)
 	fc.Result = res
-	return ec.marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
+	return ec.marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -977,7 +975,7 @@ func (ec *executionContext) _Query_role(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.([]*model.Role)
 	fc.Result = res
-	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2266,12 +2264,6 @@ func (ec *executionContext) unmarshalInputDeleteRole(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "cascade":
-			var err error
-			it.Cascade, err = ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		}
 	}
 
@@ -2773,7 +2765,7 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐAddRole(ctx context.Context, v interface{}) (model.AddRole, error) {
+func (ec *executionContext) unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐAddRole(ctx context.Context, v interface{}) (model.AddRole, error) {
 	return ec.unmarshalInputAddRole(ctx, v)
 }
 
@@ -2791,19 +2783,19 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDeletePermission2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐDeletePermission(ctx context.Context, v interface{}) (model.DeletePermission, error) {
+func (ec *executionContext) unmarshalNDeletePermission2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeletePermission(ctx context.Context, v interface{}) (model.DeletePermission, error) {
 	return ec.unmarshalInputDeletePermission(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx context.Context, v interface{}) (model.DeleteRole, error) {
+func (ec *executionContext) unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx context.Context, v interface{}) (model.DeleteRole, error) {
 	return ec.unmarshalInputDeleteRole(ctx, v)
 }
 
-func (ec *executionContext) marshalNJwt2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v model.Jwt) graphql.Marshaler {
+func (ec *executionContext) marshalNJwt2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v model.Jwt) graphql.Marshaler {
 	return ec._Jwt(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v *model.Jwt) graphql.Marshaler {
+func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v *model.Jwt) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2813,15 +2805,15 @@ func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgql�
 	return ec._Jwt(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx context.Context, v interface{}) (model.NewJwt, error) {
+func (ec *executionContext) unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx context.Context, v interface{}) (model.NewJwt, error) {
 	return ec.unmarshalInputNewJwt(ctx, v)
 }
 
-func (ec *executionContext) marshalNProperty2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v model.Property) graphql.Marshaler {
+func (ec *executionContext) marshalNProperty2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v model.Property) graphql.Marshaler {
 	return ec._Property(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐPropertyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Property) graphql.Marshaler {
+func (ec *executionContext) marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPropertyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Property) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2845,7 +2837,7 @@ func (ec *executionContext) marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshall
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐProperty(ctx, sel, v[i])
+			ret[i] = ec.marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐProperty(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2858,7 +2850,7 @@ func (ec *executionContext) marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshall
 	return ret
 }
 
-func (ec *executionContext) marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v *model.Property) graphql.Marshaler {
+func (ec *executionContext) marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v *model.Property) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2868,11 +2860,11 @@ func (ec *executionContext) marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋ
 	return ec._Property(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
 	return ec._Role(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v []*model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v []*model.Role) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2896,7 +2888,7 @@ func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋg
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalORole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx, sel, v[i])
+			ret[i] = ec.marshalORole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2909,7 +2901,7 @@ func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋg
 	return ret
 }
 
-func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v *model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v *model.Role) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3240,11 +3232,11 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalORole2githubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalORole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
 	return ec._Role(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v *model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v *model.Role) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
