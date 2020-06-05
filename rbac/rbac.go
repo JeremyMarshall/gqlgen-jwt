@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 
@@ -46,6 +47,7 @@ type Rbac struct {
 	rbac        *gorbac.RBAC
 	permissions *gorbac.Permissions
 	yamlAll     *Serialize
+	mutex       *sync.Mutex
 }
 
 func NewRbac(yamlFile string) (*Rbac, error) {
@@ -54,6 +56,7 @@ func NewRbac(yamlFile string) (*Rbac, error) {
 		rbac:        gorbac.New(),
 		permissions: &gorbac.Permissions{},
 		yamlAll:     &Serialize{},
+		mutex:       &sync.Mutex{},
 	}
 
 	if err := LoadYaml("all.yaml", ret.yamlAll); err != nil {
@@ -125,4 +128,51 @@ func (r *Rbac) GetRoles(name *string) (map[string]Role, error) {
 		return map[string]Role{*name: role}, nil
 	}
 	return nil, fmt.Errorf("Role %s not found", *name)
+}
+
+func (r *Rbac) GetPermissions(name *string) ([]string, error) {
+	if name == nil {
+		return r.yamlAll.Permissions, nil
+	}
+	for _, perm := range r.yamlAll.Permissions {
+		if perm == *name {
+			return []string{*name}, nil
+		}
+	}
+	return nil, fmt.Errorf("Permission %s not found", *name)
+}
+
+func appendIfMissing(slice []string, i *string) []string {
+	for _, ele := range slice {
+		if ele == *i {
+			return slice
+		}
+	}
+	return append(slice, *i)
+}
+
+func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Role, error) {
+	r.mutex.Lock()
+	var role Role
+	var ok bool
+
+	if role, ok = r.yamlAll.Roles[*name]; !ok {
+		// not found so add it
+		role = Role{}
+		r.yamlAll.Roles[*name] = role
+	}
+
+	for _, v := range perms {
+		role.Permissions = appendIfMissing(role.Permissions, v)
+		r.yamlAll.Permissions = appendIfMissing(r.yamlAll.Permissions, v)
+	}
+
+	for _, v := range parents {
+		role.Parents = appendIfMissing(role.Parents, v)
+	}
+
+	r.yamlAll.Roles[*name] = role
+
+	r.mutex.Unlock()
+	return role, nil
 }
