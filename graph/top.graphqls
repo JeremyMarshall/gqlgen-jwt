@@ -2,8 +2,8 @@ type Mutation {
   createJwt(input: NewJwt!): String!
 
   upsertRole(input: AddRole!): Role!
-  deleteRole(input: DeleteRole!): Boolean!
-  deletePermission(input: DeletePermission!): Boolean! 
+  deleteRole(input: Delete!): Boolean!
+  deletePermission(input: Delete!): Boolean! 
 }
 
 type Query {

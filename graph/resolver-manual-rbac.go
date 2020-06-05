@@ -19,7 +19,7 @@ func (r *mutationResolver) UpsertRole(ctx context.Context, input model.AddRole) 
 }
 
 func (r *mutationResolver) DeleteRole(ctx context.Context, input model.DeleteRole) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Rbac.DeleteRole(&input.Name)
 }
 
 func (r *mutationResolver) DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error) {

@@ -1,9 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG ?= JeremyMarshall/gqlgen-jwt:latest
-NAMESPACE ?= all
 PORT ?= 8088
-
-# PKGS := github.com/bythepowerof/gqlgen-kmakeapi,github.com/bythepowerof/gqlgen-kmakeapi/controller,github.com/bythepowerof/gqlgen-kmakeapi/k8s,github.com/bythepowerof/gqlgen-kmakeapi/view
 
 # Build manager binary
 api: bin fmt vet
@@ -13,11 +10,7 @@ server: build
 	PORT=${PORT} go run ./server.go ${SERVEROPTS}
 
 graph/*.resolver.go: graph/*.graphqls gqlgen.yml
-	# -mv graph/resolver.go graph/resolver.go.sav
 	cd graph; go run github.com/99designs/gqlgen --verbose
-
-fix: graph/*.resolver.go
-	cd graph; ./fix.pl
 
 build:  bin tidy fmt vet
 
@@ -56,4 +49,4 @@ deploy:
 clean:
 	-rm -fr dist bin cover.out coverage.txt cp.out
 
-.PHONY: server build test fix diff fmt vet tidy cover docker-push docker-build
+.PHONY: server build test diff fmt vet tidy cover docker-push docker-build

@@ -176,3 +176,18 @@ func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Rol
 	r.mutex.Unlock()
 	return role, nil
 }
+
+func (r *Rbac) DeleteRole(name *string) (bool, error) {
+	r.mutex.Lock()
+	var ok bool
+
+	if _, ok = r.yamlAll.Roles[*name]; !ok {
+		r.mutex.Unlock()
+		return false, fmt.Errorf("Role %s not found", *name)
+	}
+
+	delete(r.yamlAll.Roles, *name)
+
+	r.mutex.Unlock()
+	return true, nil
+}
