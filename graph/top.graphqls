@@ -1,13 +1,23 @@
-type Mutation {
-  createJwt(input: NewJwt!): String!
+directive @hasRbac(rbac: RBAC!) on FIELD_DEFINITION
 
-  upsertRole(input: AddRole!): Role!
-  deleteRole(input: DeleteRole!): Boolean!
-  deletePermission(input: DeletePermission!): Boolean! 
+enum RBAC {
+    JWT_QUERY
+    JWT_MUTATE
+    RBAC_QUERY
+    RBAC_MUTATE
+}
+
+type Mutation {
+  createJwt(input: NewJwt!): String! @hasRbac(rbac: JWT_MUTATE)
+
+  upsertRole(input: AddRole!): Role! @hasRbac(rbac: RBAC_MUTATE)
+  deleteRole(input: DeleteRole!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
+  deletePermission(input: DeletePermission!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
-  jwt(token: String!): Jwt!
-  permission(name: String): [String]!
-  role(name: String): [Role]!
+  jwt(token: String!): Jwt! @hasRbac(rbac: JWT_QUERY)
+
+  permission(name: String): [String]! @hasRbac(rbac: RBAC_QUERY)
+  role(name: String): [Role]! @hasRbac(rbac: RBAC_QUERY)
 }

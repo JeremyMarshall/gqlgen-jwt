@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -40,6 +41,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	HasRbac func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -352,18 +354,28 @@ input DeletePermission {
   name: String!
   permission: String!
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/top.graphqls", Input: `type Mutation {
-  createJwt(input: NewJwt!): String!
+	&ast.Source{Name: "graph/top.graphqls", Input: `directive @hasRbac(rbac: RBAC!) on FIELD_DEFINITION
 
-  upsertRole(input: AddRole!): Role!
-  deleteRole(input: DeleteRole!): Boolean!
-  deletePermission(input: DeletePermission!): Boolean! 
+enum RBAC {
+    JWT_QUERY
+    JWT_MUTATE
+    RBAC_QUERY
+    RBAC_MUTATE
+}
+
+type Mutation {
+  createJwt(input: NewJwt!): String! @hasRbac(rbac: JWT_MUTATE)
+
+  upsertRole(input: AddRole!): Role! @hasRbac(rbac: RBAC_MUTATE)
+  deleteRole(input: DeleteRole!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
+  deletePermission(input: DeletePermission!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
-  jwt(token: String!): Jwt!
-  permission(name: String): [String]!
-  role(name: String): [Role]!
+  jwt(token: String!): Jwt! @hasRbac(rbac: JWT_QUERY)
+
+  permission(name: String): [String]! @hasRbac(rbac: RBAC_QUERY)
+  role(name: String): [Role]! @hasRbac(rbac: RBAC_QUERY)
 }
 `, BuiltIn: false},
 }
@@ -372,6 +384,20 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_hasRbac_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Rbac
+	if tmp, ok := rawArgs["rbac"]; ok {
+		arg0, err = ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["rbac"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createJwt_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -646,8 +672,32 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -687,8 +737,32 @@ func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field grap
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpsertRole(rctx, args["input"].(model.AddRole))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpsertRole(rctx, args["input"].(model.AddRole))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Role); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -728,8 +802,32 @@ func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field grap
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteRole(rctx, args["input"].(model.DeleteRole))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteRole(rctx, args["input"].(model.DeleteRole))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -769,8 +867,32 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -878,8 +1000,32 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Jwt(rctx, args["token"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Jwt(rctx, args["token"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Jwt); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Jwt`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -919,8 +1065,32 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Permission(rctx, args["name"].(*string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Permission(rctx, args["name"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*string`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -960,8 +1130,32 @@ func (ec *executionContext) _Query_role(ctx context.Context, field graphql.Colle
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Role(rctx, args["name"].(*string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Role(rctx, args["name"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive hasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Role); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2858,6 +3052,15 @@ func (ec *executionContext) marshalNProperty2ᚖgithubᚗcomᚋJeremyMarshallᚋ
 		return graphql.Null
 	}
 	return ec._Property(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx context.Context, v interface{}) (model.Rbac, error) {
+	var res model.Rbac
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx context.Context, sel ast.SelectionSet, v model.Rbac) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
