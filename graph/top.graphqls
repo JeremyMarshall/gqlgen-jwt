@@ -1,4 +1,4 @@
-directive @hasRbac(rbac: RBAC!) on FIELD_DEFINITION
+directive @hasRbac(rbac: RBAC!) on QUERY | MUTATION | SUBSCRIPTION | FIELD
 
 enum RBAC {
     JWT_QUERY

@@ -54,7 +54,7 @@ type User struct {
 }
 
 func (u *User) HasRbac(rbac model.Rbac) bool {
-	return true
+	return false
 }
 
 func getCurrentUser(ctx context.Context) *User {
@@ -76,16 +76,30 @@ func main() {
 		Rbac: rbac,
 	}
 
-	c := generated.Config{Resolvers: resolver}
-	c.Directives.HasRbac = func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (interface{}, error) {
-		if !getCurrentUser(ctx).HasRbac(rbac) {
-			// block calling the next resolver
-			return nil, fmt.Errorf("Access denied")
-		}
-
-		// or let it pass through
-		return next(ctx)
+	c := generated.Config{
+		Resolvers: resolver,
+		Directives: generated.DirectiveRoot{
+			HasRbac: func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
+				if !getCurrentUser(ctx).HasRbac(rbac) {
+					// block calling the next resolver
+					return nil, fmt.Errorf("Access denied")
+				}
+		
+				// or let it pass through
+				return next(ctx)
+			},		
+		},
 	}
+	// c.Directives.HasRbac = func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
+	// 	if !getCurrentUser(ctx).HasRbac(rbac) {
+	// 		// block calling the next resolver
+	// 		return nil, fmt.Errorf("Access denied")
+	// 	}
+
+	// 	// or let it pass through
+	// 	return next(ctx)
+	// }
+
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
