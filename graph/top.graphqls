@@ -1,4 +1,4 @@
-directive @hasRbac(rbac: RBAC!) on QUERY | MUTATION | SUBSCRIPTION | FIELD
+directive @HasRbac(rbac: RBAC!) on QUERY | MUTATION | SUBSCRIPTION | FIELD
 
 enum RBAC {
     JWT_QUERY
@@ -8,16 +8,16 @@ enum RBAC {
 }
 
 type Mutation {
-  createJwt(input: NewJwt!): String! @hasRbac(rbac: JWT_MUTATE)
+  createJwt(input: NewJwt!): String! @HasRbac(rbac: JWT_MUTATE)
 
-  upsertRole(input: AddRole!): Role! @hasRbac(rbac: RBAC_MUTATE)
-  deleteRole(input: DeleteRole!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
-  deletePermission(input: DeletePermission!): Boolean! @hasRbac(rbac: RBAC_MUTATE)
+  upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
+  deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
-  jwt(token: String!): Jwt! @hasRbac(rbac: JWT_QUERY)
+  jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
 
-  permission(name: String): [String]! @hasRbac(rbac: RBAC_QUERY)
-  role(name: String): [Role]! @hasRbac(rbac: RBAC_QUERY)
+  permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
+  role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
 }
