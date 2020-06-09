@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -258,9 +259,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				return nil
 			}
 			first = false
-			data := ec._queryMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error) {
-				return ec._Query(ctx, rc.Operation.SelectionSet), nil
-			})
+			data := ec._Query(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -274,9 +273,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				return nil
 			}
 			first = false
-			data := ec._mutationMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error) {
-				return ec._Mutation(ctx, rc.Operation.SelectionSet), nil
-			})
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -357,7 +354,7 @@ input DeletePermission {
   name: String!
   permission: String!
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/top.graphqls", Input: `directive @HasRbac(rbac: RBAC!) on QUERY | MUTATION | SUBSCRIPTION | FIELD
+	&ast.Source{Name: "graph/top.graphqls", Input: `directive @HasRbac(rbac: RBAC!) on FIELD_DEFINITION
 
 enum RBAC {
     JWT_QUERY
@@ -546,137 +543,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    ************************** directives.gotpl **************************
 
-func (ec *executionContext) _queryMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
-
-	for _, d := range obj.Directives {
-		switch d.Name {
-		case "HasRbac":
-			rawArgs := d.ArgumentMap(ec.Variables)
-			args, err := ec.dir_HasRbac_args(ctx, rawArgs)
-			if err != nil {
-				ec.Error(ctx, err)
-				return graphql.Null
-			}
-			n := next
-			next = func(ctx context.Context) (interface{}, error) {
-				if ec.directives.HasRbac == nil {
-					return nil, errors.New("directive HasRbac is not implemented")
-				}
-				return ec.directives.HasRbac(ctx, obj, n, args["rbac"].(model.Rbac))
-			}
-		}
-	}
-	tmp, err := next(ctx)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if data, ok := tmp.(graphql.Marshaler); ok {
-		return data
-	}
-	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
-	return graphql.Null
-
-}
-
-func (ec *executionContext) _mutationMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
-
-	for _, d := range obj.Directives {
-		switch d.Name {
-		case "HasRbac":
-			rawArgs := d.ArgumentMap(ec.Variables)
-			args, err := ec.dir_HasRbac_args(ctx, rawArgs)
-			if err != nil {
-				ec.Error(ctx, err)
-				return graphql.Null
-			}
-			n := next
-			next = func(ctx context.Context) (interface{}, error) {
-				if ec.directives.HasRbac == nil {
-					return nil, errors.New("directive HasRbac is not implemented")
-				}
-				return ec.directives.HasRbac(ctx, obj, n, args["rbac"].(model.Rbac))
-			}
-		}
-	}
-	tmp, err := next(ctx)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if data, ok := tmp.(graphql.Marshaler); ok {
-		return data
-	}
-	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
-	return graphql.Null
-
-}
-
-func (ec *executionContext) _subscriptionMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) func() graphql.Marshaler {
-	for _, d := range obj.Directives {
-		switch d.Name {
-		case "HasRbac":
-			rawArgs := d.ArgumentMap(ec.Variables)
-			args, err := ec.dir_HasRbac_args(ctx, rawArgs)
-			if err != nil {
-				ec.Error(ctx, err)
-				return func() graphql.Marshaler {
-					return graphql.Null
-				}
-			}
-			n := next
-			next = func(ctx context.Context) (interface{}, error) {
-				if ec.directives.HasRbac == nil {
-					return nil, errors.New("directive HasRbac is not implemented")
-				}
-				return ec.directives.HasRbac(ctx, obj, n, args["rbac"].(model.Rbac))
-			}
-		}
-	}
-	tmp, err := next(ctx)
-	if err != nil {
-		ec.Error(ctx, err)
-		return func() graphql.Marshaler {
-			return graphql.Null
-		}
-	}
-	if data, ok := tmp.(func() graphql.Marshaler); ok {
-		return data
-	}
-	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
-	return func() graphql.Marshaler {
-		return graphql.Null
-	}
-}
-
-func (ec *executionContext) _fieldMiddleware(ctx context.Context, obj interface{}, next graphql.Resolver) interface{} {
-	fc := graphql.GetFieldContext(ctx)
-	for _, d := range fc.Field.Directives {
-		switch d.Name {
-		case "HasRbac":
-			rawArgs := d.ArgumentMap(ec.Variables)
-			args, err := ec.dir_HasRbac_args(ctx, rawArgs)
-			if err != nil {
-				ec.Error(ctx, err)
-				return nil
-			}
-			n := next
-			next = func(ctx context.Context) (interface{}, error) {
-				if ec.directives.HasRbac == nil {
-					return nil, errors.New("directive HasRbac is not implemented")
-				}
-				return ec.directives.HasRbac(ctx, obj, n, args["rbac"].(model.Rbac))
-			}
-		}
-	}
-	res, err := ec.ResolverMiddleware(ctx, next)
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	return res
-}
-
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
@@ -696,11 +562,14 @@ func (ec *executionContext) _Jwt_user(ctx context.Context, field graphql.Collect
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.User, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -727,11 +596,14 @@ func (ec *executionContext) _Jwt_roles(ctx context.Context, field graphql.Collec
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Roles, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -758,11 +630,14 @@ func (ec *executionContext) _Jwt_properties(ctx context.Context, field graphql.C
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Properties, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -796,11 +671,38 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -834,11 +736,38 @@ func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field grap
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpsertRole(rctx, args["input"].(model.AddRole))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpsertRole(rctx, args["input"].(model.AddRole))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Role); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -872,11 +801,38 @@ func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field grap
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteRole(rctx, args["input"].(model.DeleteRole))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteRole(rctx, args["input"].(model.DeleteRole))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -910,11 +866,38 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -941,11 +924,14 @@ func (ec *executionContext) _Property_name(ctx context.Context, field graphql.Co
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -972,11 +958,14 @@ func (ec *executionContext) _Property_value(ctx context.Context, field graphql.C
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Value, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1010,11 +999,38 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Jwt(rctx, args["token"].(string))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Jwt(rctx, args["token"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Jwt); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Jwt`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1048,11 +1064,38 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Permission(rctx, args["name"].(*string))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Permission(rctx, args["name"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1086,11 +1129,38 @@ func (ec *executionContext) _Query_role(ctx context.Context, field graphql.Colle
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Role(rctx, args["name"].(*string))
-	})
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Role(rctx, args["name"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
 
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Role); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1124,11 +1194,14 @@ func (ec *executionContext) _Query___type(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.introspectType(args["name"].(string))
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1152,11 +1225,14 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.introspectSchema()
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1180,11 +1256,14 @@ func (ec *executionContext) _Role_name(ctx context.Context, field graphql.Collec
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1211,11 +1290,14 @@ func (ec *executionContext) _Role_permissions(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Permissions, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1239,11 +1321,14 @@ func (ec *executionContext) _Role_parents(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Parents, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1267,11 +1352,14 @@ func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1298,11 +1386,14 @@ func (ec *executionContext) ___Directive_description(ctx context.Context, field 
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1326,11 +1417,14 @@ func (ec *executionContext) ___Directive_locations(ctx context.Context, field gr
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Locations, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1357,11 +1451,14 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Args, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1388,11 +1485,14 @@ func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1419,11 +1519,14 @@ func (ec *executionContext) ___EnumValue_description(ctx context.Context, field 
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1447,11 +1550,14 @@ func (ec *executionContext) ___EnumValue_isDeprecated(ctx context.Context, field
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsDeprecated(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1478,11 +1584,14 @@ func (ec *executionContext) ___EnumValue_deprecationReason(ctx context.Context, 
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DeprecationReason(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1506,11 +1615,14 @@ func (ec *executionContext) ___Field_name(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1537,11 +1649,14 @@ func (ec *executionContext) ___Field_description(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1565,11 +1680,14 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Args, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1596,11 +1714,14 @@ func (ec *executionContext) ___Field_type(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Type, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1627,11 +1748,14 @@ func (ec *executionContext) ___Field_isDeprecated(ctx context.Context, field gra
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsDeprecated(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1658,11 +1782,14 @@ func (ec *executionContext) ___Field_deprecationReason(ctx context.Context, fiel
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DeprecationReason(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1686,11 +1813,14 @@ func (ec *executionContext) ___InputValue_name(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1717,11 +1847,14 @@ func (ec *executionContext) ___InputValue_description(ctx context.Context, field
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1745,11 +1878,14 @@ func (ec *executionContext) ___InputValue_type(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Type, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1776,11 +1912,14 @@ func (ec *executionContext) ___InputValue_defaultValue(ctx context.Context, fiel
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DefaultValue, nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1804,11 +1943,14 @@ func (ec *executionContext) ___Schema_types(ctx context.Context, field graphql.C
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Types(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1835,11 +1977,14 @@ func (ec *executionContext) ___Schema_queryType(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.QueryType(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1866,11 +2011,14 @@ func (ec *executionContext) ___Schema_mutationType(ctx context.Context, field gr
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.MutationType(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1894,11 +2042,14 @@ func (ec *executionContext) ___Schema_subscriptionType(ctx context.Context, fiel
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SubscriptionType(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -1922,11 +2073,14 @@ func (ec *executionContext) ___Schema_directives(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Directives(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1953,11 +2107,14 @@ func (ec *executionContext) ___Type_kind(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Kind(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
@@ -1984,11 +2141,14 @@ func (ec *executionContext) ___Type_name(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2012,11 +2172,14 @@ func (ec *executionContext) ___Type_description(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2047,11 +2210,14 @@ func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Fields(args["includeDeprecated"].(bool)), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2075,11 +2241,14 @@ func (ec *executionContext) ___Type_interfaces(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Interfaces(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2103,11 +2272,14 @@ func (ec *executionContext) ___Type_possibleTypes(ctx context.Context, field gra
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.PossibleTypes(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2138,11 +2310,14 @@ func (ec *executionContext) ___Type_enumValues(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	fc.Args = args
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.EnumValues(args["includeDeprecated"].(bool)), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2166,11 +2341,14 @@ func (ec *executionContext) ___Type_inputFields(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.InputFields(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}
@@ -2194,11 +2372,14 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp := ec._fieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.OfType(), nil
 	})
-
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	if resTmp == nil {
 		return graphql.Null
 	}

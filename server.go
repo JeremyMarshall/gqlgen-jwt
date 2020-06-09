@@ -50,15 +50,30 @@ func AuthMiddleware(next http.Handler) http.Handler {
 const defaultPort = "8088"
 
 type User struct {
-	User string
+	User  string
+	Roles []string
 }
 
 func (u *User) HasRbac(rbac model.Rbac) bool {
-	return false
+	return true
 }
 
 func getCurrentUser(ctx context.Context) *User {
-	return &User{User: ""}
+	if aaa := ctx.Value("user"); aaa != nil {
+		bbb := aaa.(*jwt.Token)
+
+		if claims, ok := bbb.Claims.(jwt.MapClaims); ok && bbb.Valid {
+			u := &User{
+				User:  claims["user"].(string),
+				Roles: make([]string, 0),
+			}
+			for _, r := range claims["roles"].([]interface{}) {
+				u.Roles = append(u.Roles, fmt.Sprint(r))
+			}
+			return u
+		}
+	}
+	return &User{}
 }
 
 func main() {
@@ -84,10 +99,10 @@ func main() {
 					// block calling the next resolver
 					return nil, fmt.Errorf("Access denied")
 				}
-		
+
 				// or let it pass through
 				return next(ctx)
-			},		
+			},
 		},
 	}
 	// c.Directives.HasRbac = func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
