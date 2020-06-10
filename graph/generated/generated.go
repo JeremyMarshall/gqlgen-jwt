@@ -364,7 +364,7 @@ enum RBAC {
 }
 
 type Mutation {
-  createJwt(input: NewJwt!): String! @HasRbac(rbac: JWT_MUTATE)
+  createJwt(input: NewJwt!): String!
 
   upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
   deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
@@ -672,32 +672,8 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_MUTATE")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasRbac == nil {
-				return nil, errors.New("directive HasRbac is not implemented")
-			}
-			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, err
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(string); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

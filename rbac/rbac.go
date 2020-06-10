@@ -120,6 +120,15 @@ func NewRbac(yamlFile string) (*Rbac, error) {
 	// }
 }
 
+func (r *Rbac) Check(roles []string, permission string) bool {
+	for _, role := range roles {
+		if r.rbac.IsGranted(role, (*r.permissions)[permission], nil) {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Rbac) GetRoles(name *string) (map[string]Role, error) {
 	if name == nil {
 		return r.yamlAll.Roles, nil

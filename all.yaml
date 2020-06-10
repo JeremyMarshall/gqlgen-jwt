@@ -6,8 +6,22 @@ permissions:
 - edit-photo
 - del-text
 - del-photo
+- JWT_QUERY
+- RBAC_QUERY
+- RBAC_MUTATE
 
 roles:
+    jwt:
+        permissions:
+        - JWT_QUERY
+    rbac-ro:
+        permissions:
+        - RBAC_QUERY
+    rbac-rw:
+        parents:
+        - rbac-ro
+        permissions:
+        - RBAC_MUTATE
     editor:
         permissions:
         - add-text

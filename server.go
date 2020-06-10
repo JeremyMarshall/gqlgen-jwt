@@ -33,6 +33,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		Debug:         true,
 		// Set this to false if you always want a bearer token present
 		CredentialsOptional: true,
+		UserProperty:        graph.JWT_TOKEN_FIELD,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
 			data := gqlerror.Error{
 				Message: fmt.Sprintf("JWT Auth %s", err),
@@ -54,15 +55,11 @@ type User struct {
 	Roles []string
 }
 
-func (u *User) HasRbac(rbac model.Rbac) bool {
-	return true
-}
-
 func getCurrentUser(ctx context.Context) *User {
-	if aaa := ctx.Value("user"); aaa != nil {
-		bbb := aaa.(*jwt.Token)
+	if rawToken := ctx.Value(graph.JWT_TOKEN_FIELD); rawToken != nil {
+		token := rawToken.(*jwt.Token)
 
-		if claims, ok := bbb.Claims.(jwt.MapClaims); ok && bbb.Valid {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			u := &User{
 				User:  claims["user"].(string),
 				Roles: make([]string, 0),
@@ -74,6 +71,20 @@ func getCurrentUser(ctx context.Context) *User {
 		}
 	}
 	return &User{}
+}
+
+type rbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
+
+func rbacMiddleware(rbacChecker *rbac.Rbac) rbacMiddlewareFunc {
+	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
+		if !rbacChecker.Check(getCurrentUser(ctx).Roles, rbac.String()) {
+			// block calling the next resolver
+			return nil, fmt.Errorf("Access denied")
+		}
+
+		// or let it pass through
+		return next(ctx)
+	}
 }
 
 func main() {
@@ -94,26 +105,9 @@ func main() {
 	c := generated.Config{
 		Resolvers: resolver,
 		Directives: generated.DirectiveRoot{
-			HasRbac: func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
-				if !getCurrentUser(ctx).HasRbac(rbac) {
-					// block calling the next resolver
-					return nil, fmt.Errorf("Access denied")
-				}
-
-				// or let it pass through
-				return next(ctx)
-			},
+			HasRbac: rbacMiddleware(rbac),
 		},
 	}
-	// c.Directives.HasRbac = func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
-	// 	if !getCurrentUser(ctx).HasRbac(rbac) {
-	// 		// block calling the next resolver
-	// 		return nil, fmt.Errorf("Access denied")
-	// 	}
-
-	// 	// or let it pass through
-	// 	return next(ctx)
-	// }
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
 

@@ -8,7 +8,7 @@ enum RBAC {
 }
 
 type Mutation {
-  createJwt(input: NewJwt!): String! @HasRbac(rbac: JWT_MUTATE)
+  createJwt(input: NewJwt!): String!
 
   upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
   deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
