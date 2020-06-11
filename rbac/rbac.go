@@ -59,7 +59,7 @@ func NewRbac(yamlFile string) (*Rbac, error) {
 		mutex:       &sync.Mutex{},
 	}
 
-	if err := LoadYaml("all.yaml", ret.yamlAll); err != nil {
+	if err := LoadYaml(yamlFile, ret.yamlAll); err != nil {
 		return nil, err
 	}
 

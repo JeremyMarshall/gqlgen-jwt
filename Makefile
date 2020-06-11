@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= JeremyMarshall/gqlgen-jwt:latest
+IMG ?= jeremymarshall/gqlgen-jwt:latest
 PORT ?= 8088
 
 # Build manager binary
@@ -7,7 +7,7 @@ api: bin fmt vet
 	go build -o bin/api 
 
 server: build
-	PORT=${PORT} go run ./server.go ${SERVEROPTS}
+	PORT=${PORT} go run ./main.go ${SERVEROPTS}
 
 gqlgen: graph/resolver.go
 

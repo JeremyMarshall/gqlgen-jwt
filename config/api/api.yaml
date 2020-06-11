@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: gqlgen-jwtapi
+  name: system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gqlgen-jwtapi
+  labels:
+    app: gqlgen-jwtapi
+spec:
+  ports:
+    - port: 8088
+  selector:
+    app: gqlgen-jwtapi
+    tier: frontend
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gqlgen-jwtapi
+  namespace: system
+  labels:
+    app: gqlgen-jwtapi
+    tier: frontend
+    control-plane: gqlgen-jwtapi
+spec:
+  selector:
+    matchLabels:
+      app: gqlgen-jwtapi
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gqlgen-jwtapi
+        tier: frontend
+    spec:
+      containers:
+      - command:
+        - /api
+        image: api:latest
+        # envFrom:
+        # - configMapRef:
+        #     name: manager-env
+        name: api
+        ports:
+          - containerPort: 8088
+            name: gqlgen-jwtapi
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10

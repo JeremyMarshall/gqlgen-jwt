@@ -21,19 +21,19 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func AuthMiddleware(next http.Handler) http.Handler {
-	if len(graph.JWT_SECRET) == 0 {
+func AuthMiddleware(next http.Handler, secret string) http.Handler {
+	if len(secret) == 0 {
 		log.Fatal("HTTP server unable to start, expected an APP_KEY for JWT auth")
 	}
 	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
-			return []byte(graph.JWT_SECRET), nil
+			return []byte(secret), nil
 		},
 		SigningMethod: jwt.SigningMethodHS256,
 		Debug:         true,
 		// Set this to false if you always want a bearer token present
 		CredentialsOptional: true,
-		UserProperty:        graph.JWT_TOKEN_FIELD,
+		UserProperty:        graph.JwtTokenField,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
 			data := gqlerror.Error{
 				Message: fmt.Sprintf("JWT Auth %s", err),
@@ -48,15 +48,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return jwtMiddleware.Handler(next)
 }
 
-const defaultPort = "8088"
-
 type User struct {
 	User  string
 	Roles []string
 }
 
 func getCurrentUser(ctx context.Context) *User {
-	if rawToken := ctx.Value(graph.JWT_TOKEN_FIELD); rawToken != nil {
+	if rawToken := ctx.Value(graph.JwtTokenField); rawToken != nil {
 		token := rawToken.(*jwt.Token)
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
@@ -90,16 +88,27 @@ func rbacMiddleware(rbacChecker *rbac.Rbac) rbacMiddlewareFunc {
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = graph.DefaultPort
 	}
 
-	rbac, err := rbac.NewRbac("aa")
+	gorbacYaml := os.Getenv("GORBAC")
+	if gorbacYaml == "" {
+		gorbacYaml = graph.GorbacYaml
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = graph.JwtSecret
+	}
+
+	rbac, err := rbac.NewRbac(gorbacYaml)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	resolver := &graph.Resolver{
-		Rbac: rbac,
+		Rbac:      rbac,
+		JwtSecret: jwtSecret,
 	}
 
 	c := generated.Config{
@@ -112,7 +121,7 @@ func main() {
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", AuthMiddleware(handlers.LoggingHandler(os.Stdout, srv)))
+	http.Handle("/query", AuthMiddleware(handlers.LoggingHandler(os.Stdout, srv), jwtSecret))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

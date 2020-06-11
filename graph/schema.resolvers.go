@@ -20,10 +20,10 @@ func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (s
 		"user":  input.User,
 		"roles": input.Roles,
 
-		"iss": ISSUER,
+		"iss": Issuer,
 		"sub": "gqlgen properties",
 		"aud": "gqlgen",
-		"exp": time.Now().Add(time.Minute * EXPIRY_MINS).Unix(),
+		"exp": time.Now().Add(time.Minute * ExpiryMins).Unix(),
 		"nbf": time.Now().Unix(),
 		"iat": time.Now().Unix(),
 		// iss	Issuer			Identifies principal that issued the JWT.
@@ -36,7 +36,7 @@ func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (s
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(JWT_SECRET))
+	tokenString, err := token.SignedString([]byte(r.JwtSecret))
 
 	return tokenString, err
 }
@@ -71,7 +71,7 @@ func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, erro
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(JWT_SECRET), nil
+		return []byte(r.JwtSecret), nil
 	})
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {

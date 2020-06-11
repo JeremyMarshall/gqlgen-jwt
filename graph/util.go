@@ -6,10 +6,12 @@ import (
 )
 
 const (
-	JWT_SECRET      = "secret"
-	ISSUER          = "issuer"
-	EXPIRY_MINS     = 60
-	JWT_TOKEN_FIELD = "user"
+	JwtSecret     = "secret"
+	Issuer        = "issuer"
+	ExpiryMins    = 60
+	JwtTokenField = "user"
+	DefaultPort   = "8088"
+	GorbacYaml    = "./all.yaml"
 )
 
 func convertRole(k string, v rbac.Role) *model.Role {
