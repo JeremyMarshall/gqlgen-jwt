@@ -6,3 +6,10 @@ images:
 - name: api
   newName: jeremymarshall/gqlgen-jwt
   newTag: latest
+configMapGenerator:
+- envs:
+  - api.env
+  name: apienv
+- files:
+  - all.yaml
+  name: gorbac-yaml

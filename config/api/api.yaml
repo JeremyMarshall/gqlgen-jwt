@@ -43,10 +43,13 @@ spec:
       - command:
         - /api
         image: api:latest
-        # envFrom:
-        # - configMapRef:
-        #     name: manager-env
+        envFrom:
+        - configMapRef:
+            name: apienv
         name: api
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/jwtapi/config
         ports:
           - containerPort: 8088
             name: gqlgen-jwtapi
@@ -57,4 +60,10 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: gorbac-yaml
       terminationGracePeriodSeconds: 10
