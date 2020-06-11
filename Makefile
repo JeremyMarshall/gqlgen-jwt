@@ -9,10 +9,12 @@ api: bin fmt vet
 server: build
 	PORT=${PORT} go run ./server.go ${SERVEROPTS}
 
+gqlgen: graph/resolver.go
+
 graph/resolver.go: graph/*.graphqls gqlgen.yml
 	go run github.com/99designs/gqlgen --verbose
 
-build: bin tidy fmt vet
+build: bin tidy gqlgen fmt vet
 
 tidy:
 	go mod tidy
@@ -49,4 +51,4 @@ deploy:
 clean:
 	-rm -fr dist bin cover.out coverage.txt cp.out
 
-.PHONY: server build test diff fmt vet tidy cover docker-push docker-build
+.PHONY: server build test diff fmt vet tidy cover docker-push docker-build gqlgen

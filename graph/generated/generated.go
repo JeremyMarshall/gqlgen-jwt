@@ -307,10 +307,16 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/jwt.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
+	&ast.Source{Name: "graph/schema.graphqls", Input: `directive @HasRbac(rbac: RBAC!) on FIELD_DEFINITION
 
+enum RBAC {
+    JWT_QUERY
+    JWT_MUTATE
+    RBAC_QUERY
+    RBAC_MUTATE
+}
+
+# JWT 
 
 type Property {
   name: String!
@@ -328,11 +334,8 @@ input NewJwt {
   roles: [String!]!
 }
 
-`, BuiltIn: false},
-	&ast.Source{Name: "graph/rbac.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
 
+# RBAC
 
 type Role {
   name: String!
@@ -353,27 +356,26 @@ input DeleteRole {
 input DeletePermission {
   name: String!
   permission: String!
-}`, BuiltIn: false},
-	&ast.Source{Name: "graph/top.graphqls", Input: `directive @HasRbac(rbac: RBAC!) on FIELD_DEFINITION
-
-enum RBAC {
-    JWT_QUERY
-    JWT_MUTATE
-    RBAC_QUERY
-    RBAC_MUTATE
 }
 
+
+
 type Mutation {
+  # JWT mutations
   createJwt(input: NewJwt!): String!
 
+  # RBAC mutations
   upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
   deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
   deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
+  # JWT queries
   jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
 
+
+  # RBAC queries
   permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
   role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
 }
