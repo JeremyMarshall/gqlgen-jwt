@@ -1,0 +1,83 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+  hooks:
+    # you may remove this if you don't use vgo
+    # - go mod tidy
+    # you may remove this if you don't need go generate
+    # - go generate ./...
+project_name: api
+builds:
+- env:
+  - CGO_ENABLED=0
+archives:
+- replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+dockers:
+-
+  # GOOS of the built binary that should be used.
+  goos: linux
+
+  # GOARCH of the built binary that should be used.
+  goarch: amd64
+
+  # GOARM of the built binary that should be used.
+  goarm: ''
+
+  # Name templates of the built binaries that should be used.
+  binaries:
+  - api
+
+  # Build IDs to gather the binaries from.
+  builds:
+  - api
+
+  # Templates of the Docker image names.
+  image_templates:
+  - "jeremymarshall/gqlgen-jwtapi:latest"
+  - "jeremymarshall/gqlgen-jwtapi:{{ .Tag }}"
+  - "jeremymarshall/gqlgen-jwtapi:v{{ .Major }}"
+
+  # Skips the docker push. Could be useful if you also do draft releases.
+  # If set to auto, the release will not be pushed to the docker repository
+  # in case there is an indicator for prerelease in the tag e.g. v1.0.0-rc1
+  # Defaults to false.
+  skip_push: auto
+
+  # Path to the Dockerfile (from the project root).
+  dockerfile: Dockerfile.travis
+
+  # Template of the docker build flags.
+  build_flag_templates:
+  - "--pull"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+
+  # If your Dockerfile copies files other than the binary itself,
+  # you should list them here as well.
+  # Note that goreleaser will create the same structure inside the temporary
+  # folder, so if you add `foo/bar.json` here, on your Dockerfile you can
+  # `COPY foo/bar.json /whatever.json`.
+  # Also note that the paths here are relative to the folder in which
+  # goreleaser is being run.
+  # This field does not support wildcards, you can add an entire folder here
+  # and use wildcards when you `COPY`/`ADD` in your Dockerfile.
+  # extra_files:
+  # - Dockerfile.travis
+    
