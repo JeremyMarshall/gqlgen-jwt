@@ -101,7 +101,12 @@ func main() {
 		jwtSecret = graph.JwtSecret
 	}
 
-	rbac, err := rbac.NewRbac(gorbacYaml)
+	f, err := os.Open(gorbacYaml)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rbac, err := rbac.NewRbac(f)
 	if err != nil {
 		log.Fatal(err)
 	}

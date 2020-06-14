@@ -2,8 +2,8 @@ package rbac
 
 import (
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"sync"
 
 	"gopkg.in/yaml.v2"
@@ -15,22 +15,12 @@ func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
-func LoadYaml(filename string, v interface{}) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return yaml.NewDecoder(f).Decode(v)
+func LoadYaml(reader io.Reader, v interface{}) error {
+	return yaml.NewDecoder(reader).Decode(v)
 }
 
-func SaveYaml(filename string, v interface{}) error {
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return yaml.NewEncoder(f).Encode(v)
+func SaveYaml(writer io.Writer, v interface{}) error {
+	return yaml.NewEncoder(writer).Encode(v)
 }
 
 type Role struct {
@@ -50,7 +40,7 @@ type Rbac struct {
 	mutex       *sync.Mutex
 }
 
-func NewRbac(yamlFile string) (*Rbac, error) {
+func NewRbac(reader io.Reader) (*Rbac, error) {
 
 	ret := &Rbac{
 		rbac:        gorbac.New(),
@@ -59,7 +49,7 @@ func NewRbac(yamlFile string) (*Rbac, error) {
 		mutex:       &sync.Mutex{},
 	}
 
-	if err := LoadYaml(yamlFile, ret.yamlAll); err != nil {
+	if err := LoadYaml(reader, ret.yamlAll); err != nil {
 		return nil, err
 	}
 
@@ -82,42 +72,6 @@ func NewRbac(yamlFile string) (*Rbac, error) {
 	}
 
 	return ret, nil
-
-	// // Check if `editor` can add text
-	// if rbac.IsGranted("editor", permissions["add-text"], nil) {
-	// 	log.Println("Editor can add text")
-	// }
-	// // Check if `chief-editor` can add text
-	// if rbac.IsGranted("chief-editor", permissions["add-text"], nil) {
-	// 	log.Println("Chief editor can add text")
-	// }
-	// // Check if `photographer` can add text
-	// if !rbac.IsGranted("photographer", permissions["add-text"], nil) {
-	// 	log.Println("Photographer can't add text")
-	// }
-	// // Check if `nobody` can add text
-	// // `nobody` is not exist in goRBAC at the moment
-	// if !rbac.IsGranted("nobody", permissions["read-text"], nil) {
-	// 	log.Println("Nobody can't read text")
-	// }
-	// // Add `nobody` and assign `read-text` permission
-	// nobody := gorbac.NewStdRole("nobody")
-	// permissions["read-text"] = gorbac.NewStdPermission("read-text")
-	// nobody.Assign(permissions["read-text"])
-	// rbac.Add(nobody)
-
-	// yamlAll.Roles["nobody"] = Role{
-	// 	Permissions: []string{"read-text"},
-	// }
-
-	// // Check if `nobody` can read text again
-	// if rbac.IsGranted("nobody", permissions["read-text"], nil) {
-	// 	log.Println("Nobody can read text")
-	// }
-
-	// if err := SaveYaml("new-all.yaml", &yamlAll); err != nil {
-	// 	log.Fatal(err)
-	// }
 }
 
 func (r *Rbac) Check(roles []string, permission string) bool {
