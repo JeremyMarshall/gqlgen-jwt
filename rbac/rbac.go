@@ -76,8 +76,10 @@ func NewRbac(reader io.Reader) (*Rbac, error) {
 
 func (r *Rbac) Check(roles []string, permission string) bool {
 	for _, role := range roles {
-		if r.rbac.IsGranted(role, (*r.permissions)[permission], nil) {
-			return true
+		if p, ok := (*r.permissions)[permission]; ok {
+			if r.rbac.IsGranted(role, p, nil) {
+				return true
+			}
 		}
 	}
 	return false
