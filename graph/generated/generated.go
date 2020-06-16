@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		CreateJwt        func(childComplexity int, input model.NewJwt) int
 		DeletePermission func(childComplexity int, input model.DeletePermission) int
 		DeleteRole       func(childComplexity int, input model.DeleteRole) int
+		Save             func(childComplexity int) int
 		UpsertRole       func(childComplexity int, input model.AddRole) int
 	}
 
@@ -81,6 +82,7 @@ type MutationResolver interface {
 	UpsertRole(ctx context.Context, input model.AddRole) (*model.Role, error)
 	DeleteRole(ctx context.Context, input model.DeleteRole) (bool, error)
 	DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error)
+	Save(ctx context.Context) (bool, error)
 }
 type QueryResolver interface {
 	Jwt(ctx context.Context, token string) (*model.Jwt, error)
@@ -159,6 +161,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteRole(childComplexity, args["input"].(model.DeleteRole)), true
+
+	case "Mutation.save":
+		if e.complexity.Mutation.Save == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Save(childComplexity), true
 
 	case "Mutation.upsertRole":
 		if e.complexity.Mutation.UpsertRole == nil {
@@ -368,6 +377,7 @@ type Mutation {
   upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
   deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
   deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
@@ -848,6 +858,64 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
 			return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRbac == nil {
+				return nil, errors.New("directive HasRbac is not implemented")
+			}
+			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_save(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().Save(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
@@ -2543,6 +2611,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deletePermission":
 			out.Values[i] = ec._Mutation_deletePermission(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "save":
+			out.Values[i] = ec._Mutation_save(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

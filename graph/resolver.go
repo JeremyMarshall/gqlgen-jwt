@@ -9,4 +9,5 @@ import "github.com/JeremyMarshall/gqlgen-jwt/rbac"
 type Resolver struct {
 	Rbac      *rbac.Rbac
 	JwtSecret string
+	Serialize string
 }

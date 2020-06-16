@@ -105,6 +105,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer f.Close()
 
 	rbac, err := rbac.NewRbac(f)
 	if err != nil {
@@ -114,6 +115,7 @@ func main() {
 	resolver := &graph.Resolver{
 		Rbac:      rbac,
 		JwtSecret: jwtSecret,
+		Serialize: gorbacYaml,
 	}
 
 	c := generated.Config{

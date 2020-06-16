@@ -1,21 +1,21 @@
 package rbac
 
 import (
+	"bytes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"strings"
-	"bytes"
 )
 
 var _ = Describe("Rbac", func() {
 
-    var (
-		yaml  string
+	var (
+		yaml string
 		rbac *Rbac
-		err error
-    )
+		err  error
+	)
 
-    BeforeEach(func() {
+	BeforeEach(func() {
 		yaml = `
 permissions: 
 - add-text
@@ -63,9 +63,9 @@ roles:
 						"role1": Role{Permissions: []string{"perm1"}},
 						"role2": Role{
 							Permissions: []string{"perm2"},
-							Parents: []string{"role1"},
-					},
-				},}
+							Parents:     []string{"role1"},
+						},
+					}}
 				buf := new(bytes.Buffer)
 				err = SaveYaml(buf, s)
 
@@ -80,17 +80,17 @@ roles:
 				Expect(len(rbac.yamlAll.Permissions)).To(Equal(7))
 				Expect(len(rbac.yamlAll.Roles)).To(Equal(3))
 			})
-		})		
+		})
 		Context("Valid role and permission", func() {
 			It("should succeed", func() {
 				Expect(rbac.Check([]string{"editor"}, "add-text")).To(BeTrue())
 			})
-		})	
+		})
 		Context("Invalid role and valid permission", func() {
 			It("should fail", func() {
 				Expect(rbac.Check([]string{"invalid", "invalid2"}, "add-text")).To(BeFalse())
 			})
-		})	
+		})
 		Context("Valid role and invalid permission", func() {
 			It("should fail", func() {
 				Expect(rbac.Check([]string{"editor", "photographer"}, "invalid")).To(BeFalse())
@@ -145,9 +145,9 @@ roles:
 				r := "new"
 				p := "new1"
 				pa := "editor"
-				perms :=[]*string{&p}
-				parents :=[]*string{&pa}
-				
+				perms := []*string{&p}
+				parents := []*string{&pa}
+
 				new, err := rbac.UpsertRole(&r, perms, parents)
 				Expect(err).To(BeNil())
 				Expect(len(new.Parents)).To(Equal(1))
@@ -162,12 +162,11 @@ roles:
 				r := "new"
 				p := "new1"
 				pa := "invalid"
-				perms :=[]*string{&p}
-				parents :=[]*string{&pa}
-				
+				perms := []*string{&p}
+				parents := []*string{&pa}
+
 				_, err := rbac.UpsertRole(&r, perms, parents)
 				Expect(err).To(HaveOccurred())
-
 
 			})
 		})
@@ -187,7 +186,7 @@ roles:
 		Context("Delete unknown role", func() {
 			It("should fail", func() {
 				r := "invalid"
-				
+
 				_, err := rbac.DeleteRole(&r)
 				Expect(err).To(HaveOccurred())
 			})
@@ -210,7 +209,7 @@ roles:
 			It("should fail", func() {
 				r := "invalid"
 				p := "new1"
-				
+
 				_, err := rbac.DeletePermission(&r, &p)
 				Expect(err).To(HaveOccurred())
 			})
@@ -220,7 +219,7 @@ roles:
 			It("should fail", func() {
 				r := "editor"
 				p := "invalid"
-				
+
 				_, err := rbac.DeletePermission(&r, &p)
 				Expect(err).To(HaveOccurred())
 			})

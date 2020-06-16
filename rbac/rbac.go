@@ -43,8 +43,8 @@ type Rbac struct {
 func NewRbac(reader io.Reader) (*Rbac, error) {
 
 	ret := &Rbac{
-		yamlAll:     &Serialize{},
-		mutex:       &sync.Mutex{},
+		yamlAll: &Serialize{},
+		mutex:   &sync.Mutex{},
 	}
 
 	if err := LoadYaml(reader, ret.yamlAll); err != nil {
@@ -53,7 +53,6 @@ func NewRbac(reader io.Reader) (*Rbac, error) {
 
 	return ret.Load()
 }
-
 
 func (r *Rbac) Load() (*Rbac, error) {
 	r.rbac = gorbac.New()

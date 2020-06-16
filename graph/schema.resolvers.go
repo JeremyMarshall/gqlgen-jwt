@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
@@ -57,6 +58,16 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, input model.DeleteRol
 
 func (r *mutationResolver) DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error) {
 	return r.Rbac.DeletePermission(&input.Name, &input.Permission)
+}
+
+func (r *mutationResolver) Save(ctx context.Context) (bool, error) {
+	f, err := os.Create(r.Serialize)
+	defer f.Close()
+	if err != nil {
+		return false, err
+	}
+	err = r.Rbac.Save(f)
+	return err == nil, err
 }
 
 func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, error) {

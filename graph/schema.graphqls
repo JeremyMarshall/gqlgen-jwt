@@ -59,6 +59,7 @@ type Mutation {
   upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
   deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
   deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
 }
 
 type Query {
