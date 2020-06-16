@@ -49,31 +49,44 @@ func NewRbac(reader io.Reader) (*Rbac, error) {
 		mutex:       &sync.Mutex{},
 	}
 
-	if err := LoadYaml(reader, ret.yamlAll); err != nil {
+	return ret.Load(reader)
+}
+
+
+func (r *Rbac) Load(reader io.Reader) (*Rbac, error) {
+	if err := LoadYaml(reader, r.yamlAll); err != nil {
 		return nil, err
 	}
 
-	for _, pid := range ret.yamlAll.Permissions {
-		(*ret.permissions)[pid] = gorbac.NewStdPermission(pid)
+	for _, pid := range r.yamlAll.Permissions {
+		(*r.permissions)[pid] = gorbac.NewStdPermission(pid)
 	}
 
-	for k, v := range ret.yamlAll.Roles {
+	for k, v := range r.yamlAll.Roles {
 		role := gorbac.NewStdRole(k)
 		for _, pid := range v.Permissions {
-			role.Assign((*ret.permissions)[pid])
+			role.Assign((*r.permissions)[pid])
 		}
-		ret.rbac.Add(role)
+		r.rbac.Add(role)
 	}
 
-	for k, v := range ret.yamlAll.Roles {
-		if err := ret.rbac.SetParents(k, v.Parents); err != nil {
+	for k, v := range r.yamlAll.Roles {
+		if err := r.rbac.SetParents(k, v.Parents); err != nil {
 			return nil, err
 		}
 	}
 
-	return ret, nil
+	return r, nil
 }
 
+func appendIfMissing(slice []string, i *string) []string {
+	for _, ele := range slice {
+		if ele == *i {
+			return slice
+		}
+	}
+	return append(slice, *i)
+}
 func (r *Rbac) Check(roles []string, permission string) bool {
 	for _, role := range roles {
 		if p, ok := (*r.permissions)[permission]; ok {
@@ -107,15 +120,6 @@ func (r *Rbac) GetPermissions(name *string) ([]string, error) {
 	return nil, fmt.Errorf("Permission %s not found", *name)
 }
 
-func appendIfMissing(slice []string, i *string) []string {
-	for _, ele := range slice {
-		if ele == *i {
-			return slice
-		}
-	}
-	return append(slice, *i)
-}
-
 func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Role, error) {
 	r.mutex.Lock()
 	var role Role
@@ -133,6 +137,11 @@ func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Rol
 	}
 
 	for _, v := range parents {
+		if _, err := r.GetRoles(v); err != nil {
+			r.mutex.Unlock()
+			return Role{}, fmt.Errorf("Parent role %s not found", *v)
+		}
+
 		role.Parents = appendIfMissing(role.Parents, v)
 	}
 
