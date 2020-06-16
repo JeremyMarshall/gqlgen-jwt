@@ -225,6 +225,16 @@ roles:
 				Expect(err).To(HaveOccurred())
 			})
 		})
+		Context("Can write yaml", func() {
+			It("should succeed", func() {
+				buf := new(bytes.Buffer)
+				rbac.Save(buf)
+
+				Expect(err).To(BeNil())
+				Expect(len(rbac.yamlAll.Permissions)).To(Equal(6))
+				Expect(len(rbac.yamlAll.Roles)).To(Equal(3))
+			})
+		})
 	})
 
 })

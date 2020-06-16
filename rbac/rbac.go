@@ -43,20 +43,21 @@ type Rbac struct {
 func NewRbac(reader io.Reader) (*Rbac, error) {
 
 	ret := &Rbac{
-		rbac:        gorbac.New(),
-		permissions: &gorbac.Permissions{},
 		yamlAll:     &Serialize{},
 		mutex:       &sync.Mutex{},
 	}
 
-	return ret.Load(reader)
+	if err := LoadYaml(reader, ret.yamlAll); err != nil {
+		return nil, err
+	}
+
+	return ret.Load()
 }
 
 
-func (r *Rbac) Load(reader io.Reader) (*Rbac, error) {
-	if err := LoadYaml(reader, r.yamlAll); err != nil {
-		return nil, err
-	}
+func (r *Rbac) Load() (*Rbac, error) {
+	r.rbac = gorbac.New()
+	r.permissions = &gorbac.Permissions{}
 
 	for _, pid := range r.yamlAll.Permissions {
 		(*r.permissions)[pid] = gorbac.NewStdPermission(pid)
@@ -77,6 +78,27 @@ func (r *Rbac) Load(reader io.Reader) (*Rbac, error) {
 	}
 
 	return r, nil
+}
+
+func (r *Rbac) Save(writer io.Writer) error {
+
+	// remove any permissions not mentioned in roles
+	r.yamlAll.Permissions = make([]string, 0)
+
+	for _, v := range r.yamlAll.Roles {
+		for _, pid := range v.Permissions {
+			r.yamlAll.Permissions = appendIfMissing(r.yamlAll.Permissions, &pid)
+		}
+	}
+
+	err := SaveYaml(writer, r.yamlAll)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Load()
+
+	return err
 }
 
 func appendIfMissing(slice []string, i *string) []string {
