@@ -51,12 +51,21 @@ type ComplexityRoot struct {
 		User       func(childComplexity int) int
 	}
 
+	JwtMutation struct {
+		Create func(childComplexity int, input model.NewJwt) int
+	}
+
+	JwtQuery struct {
+		Token func(childComplexity int, token string) int
+	}
+
 	Mutation struct {
-		CreateJwt        func(childComplexity int, input model.NewJwt) int
-		DeletePermission func(childComplexity int, input model.DeletePermission) int
-		DeleteRole       func(childComplexity int, input model.DeleteRole) int
-		Save             func(childComplexity int) int
-		UpsertRole       func(childComplexity int, input model.AddRole) int
+		Jwt  func(childComplexity int) int
+		Rbac func(childComplexity int) int
+	}
+
+	PermissionMutation struct {
+		Delete func(childComplexity int, input model.DeletePermission) int
 	}
 
 	Property struct {
@@ -65,7 +74,17 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Jwt        func(childComplexity int, token string) int
+		Jwt  func(childComplexity int) int
+		Rbac func(childComplexity int) int
+	}
+
+	RbacMutation struct {
+		Permission func(childComplexity int) int
+		Role       func(childComplexity int) int
+		Save       func(childComplexity int) int
+	}
+
+	RbacQuery struct {
 		Permission func(childComplexity int, name *string) int
 		Role       func(childComplexity int, name *string) int
 	}
@@ -75,19 +94,20 @@ type ComplexityRoot struct {
 		Parents     func(childComplexity int) int
 		Permissions func(childComplexity int) int
 	}
+
+	RoleMutation struct {
+		Delete func(childComplexity int, input model.DeleteRole) int
+		Upsert func(childComplexity int, input model.AddRole) int
+	}
 }
 
 type MutationResolver interface {
-	CreateJwt(ctx context.Context, input model.NewJwt) (string, error)
-	UpsertRole(ctx context.Context, input model.AddRole) (*model.Role, error)
-	DeleteRole(ctx context.Context, input model.DeleteRole) (bool, error)
-	DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error)
-	Save(ctx context.Context) (bool, error)
+	Jwt(ctx context.Context) (*model.JwtMutation, error)
+	Rbac(ctx context.Context) (*model.RbacMutation, error)
 }
 type QueryResolver interface {
-	Jwt(ctx context.Context, token string) (*model.Jwt, error)
-	Permission(ctx context.Context, name *string) ([]*string, error)
-	Role(ctx context.Context, name *string) ([]*model.Role, error)
+	Jwt(ctx context.Context) (*model.JwtQuery, error)
+	Rbac(ctx context.Context) (*model.RbacQuery, error)
 }
 
 type executableSchema struct {
@@ -126,60 +146,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Jwt.User(childComplexity), true
 
-	case "Mutation.createJwt":
-		if e.complexity.Mutation.CreateJwt == nil {
+	case "JwtMutation.create":
+		if e.complexity.JwtMutation.Create == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createJwt_args(context.TODO(), rawArgs)
+		args, err := ec.field_JwtMutation_create_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateJwt(childComplexity, args["input"].(model.NewJwt)), true
+		return e.complexity.JwtMutation.Create(childComplexity, args["input"].(model.NewJwt)), true
 
-	case "Mutation.deletePermission":
-		if e.complexity.Mutation.DeletePermission == nil {
+	case "JwtQuery.token":
+		if e.complexity.JwtQuery.Token == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_deletePermission_args(context.TODO(), rawArgs)
+		args, err := ec.field_JwtQuery_token_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeletePermission(childComplexity, args["input"].(model.DeletePermission)), true
+		return e.complexity.JwtQuery.Token(childComplexity, args["token"].(string)), true
 
-	case "Mutation.deleteRole":
-		if e.complexity.Mutation.DeleteRole == nil {
+	case "Mutation.jwt":
+		if e.complexity.Mutation.Jwt == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_deleteRole_args(context.TODO(), rawArgs)
+		return e.complexity.Mutation.Jwt(childComplexity), true
+
+	case "Mutation.rbac":
+		if e.complexity.Mutation.Rbac == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Rbac(childComplexity), true
+
+	case "PermissionMutation.delete":
+		if e.complexity.PermissionMutation.Delete == nil {
+			break
+		}
+
+		args, err := ec.field_PermissionMutation_delete_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteRole(childComplexity, args["input"].(model.DeleteRole)), true
-
-	case "Mutation.save":
-		if e.complexity.Mutation.Save == nil {
-			break
-		}
-
-		return e.complexity.Mutation.Save(childComplexity), true
-
-	case "Mutation.upsertRole":
-		if e.complexity.Mutation.UpsertRole == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_upsertRole_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpsertRole(childComplexity, args["input"].(model.AddRole)), true
+		return e.complexity.PermissionMutation.Delete(childComplexity, args["input"].(model.DeletePermission)), true
 
 	case "Property.name":
 		if e.complexity.Property.Name == nil {
@@ -200,36 +215,59 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_jwt_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Query.Jwt(childComplexity), true
 
-		return e.complexity.Query.Jwt(childComplexity, args["token"].(string)), true
-
-	case "Query.permission":
-		if e.complexity.Query.Permission == nil {
+	case "Query.rbac":
+		if e.complexity.Query.Rbac == nil {
 			break
 		}
 
-		args, err := ec.field_Query_permission_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Query.Rbac(childComplexity), true
 
-		return e.complexity.Query.Permission(childComplexity, args["name"].(*string)), true
-
-	case "Query.role":
-		if e.complexity.Query.Role == nil {
+	case "RbacMutation.permission":
+		if e.complexity.RbacMutation.Permission == nil {
 			break
 		}
 
-		args, err := ec.field_Query_role_args(context.TODO(), rawArgs)
+		return e.complexity.RbacMutation.Permission(childComplexity), true
+
+	case "RbacMutation.role":
+		if e.complexity.RbacMutation.Role == nil {
+			break
+		}
+
+		return e.complexity.RbacMutation.Role(childComplexity), true
+
+	case "RbacMutation.save":
+		if e.complexity.RbacMutation.Save == nil {
+			break
+		}
+
+		return e.complexity.RbacMutation.Save(childComplexity), true
+
+	case "RbacQuery.permission":
+		if e.complexity.RbacQuery.Permission == nil {
+			break
+		}
+
+		args, err := ec.field_RbacQuery_permission_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Role(childComplexity, args["name"].(*string)), true
+		return e.complexity.RbacQuery.Permission(childComplexity, args["name"].(*string)), true
+
+	case "RbacQuery.role":
+		if e.complexity.RbacQuery.Role == nil {
+			break
+		}
+
+		args, err := ec.field_RbacQuery_role_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.RbacQuery.Role(childComplexity, args["name"].(*string)), true
 
 	case "Role.name":
 		if e.complexity.Role.Name == nil {
@@ -251,6 +289,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Role.Permissions(childComplexity), true
+
+	case "RoleMutation.delete":
+		if e.complexity.RoleMutation.Delete == nil {
+			break
+		}
+
+		args, err := ec.field_RoleMutation_delete_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.RoleMutation.Delete(childComplexity, args["input"].(model.DeleteRole)), true
+
+	case "RoleMutation.upsert":
+		if e.complexity.RoleMutation.Upsert == nil {
+			break
+		}
+
+		args, err := ec.field_RoleMutation_upsert_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.RoleMutation.Upsert(childComplexity, args["input"].(model.AddRole)), true
 
 	}
 	return 0, false
@@ -367,27 +429,48 @@ input DeletePermission {
   permission: String!
 }
 
+type JwtMutation {
+   create(input: NewJwt!): String!
+}
 
+type RoleMutation {
+  upsert(input: AddRole!): Role!
+  delete(input: DeleteRole!): Boolean!
+}
+
+type PermissionMutation {
+  delete(input: DeletePermission!): Boolean! 
+}
+
+type RbacMutation {
+  role: RoleMutation!
+  permission: PermissionMutation!
+  save: Boolean! 
+}
 
 type Mutation {
   # JWT mutations
-  createJwt(input: NewJwt!): String!
+  jwt: JwtMutation!
 
   # RBAC mutations
-  upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
-  deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
-  deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
-  save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  rbac: RbacMutation! @HasRbac(rbac: RBAC_MUTATE)
+}
+
+type JwtQuery {
+    token(token: String!): Jwt!
+}
+
+type RbacQuery {
+  permission(name: String): [String]!
+  role(name: String): [Role]! 
 }
 
 type Query {
   # JWT queries
-  jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
-
+  jwt: JwtQuery!  @HasRbac(rbac: JWT_QUERY)
 
   # RBAC queries
-  permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
-  role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
+  rbac: RbacQuery! @HasRbac(rbac: RBAC_QUERY)
 }
 `, BuiltIn: false},
 }
@@ -411,7 +494,7 @@ func (ec *executionContext) dir_HasRbac_args(ctx context.Context, rawArgs map[st
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createJwt_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_JwtMutation_create_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.NewJwt
@@ -425,40 +508,26 @@ func (ec *executionContext) field_Mutation_createJwt_args(ctx context.Context, r
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_deletePermission_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_JwtQuery_token_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["token"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["token"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_PermissionMutation_delete_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.DeletePermission
 	if tmp, ok := rawArgs["input"]; ok {
 		arg0, err = ec.unmarshalNDeletePermission2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeletePermission(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.DeleteRole
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_upsertRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.AddRole
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐAddRole(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -481,21 +550,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_jwt_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["token"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["token"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_permission_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_RbacQuery_permission_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -509,7 +564,7 @@ func (ec *executionContext) field_Query_permission_args(ctx context.Context, raw
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_role_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_RbacQuery_role_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -520,6 +575,34 @@ func (ec *executionContext) field_Query_role_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_RoleMutation_delete_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeleteRole
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNDeleteRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐDeleteRole(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_RoleMutation_upsert_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AddRole
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNAddRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐAddRole(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -661,7 +744,7 @@ func (ec *executionContext) _Jwt_properties(ctx context.Context, field graphql.C
 	return ec.marshalNProperty2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPropertyᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _JwtMutation_create(ctx context.Context, field graphql.CollectedField, obj *model.JwtMutation) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -669,15 +752,15 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
+		Object:   "JwtMutation",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createJwt_args(ctx, rawArgs)
+	args, err := ec.field_JwtMutation_create_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -685,7 +768,7 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateJwt(rctx, args["input"].(model.NewJwt))
+		return obj.Create, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -702,7 +785,7 @@ func (ec *executionContext) _Mutation_createJwt(ctx context.Context, field graph
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _JwtQuery_token(ctx context.Context, field graphql.CollectedField, obj *model.JwtQuery) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -710,47 +793,23 @@ func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
+		Object:   "JwtQuery",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_upsertRole_args(ctx, rawArgs)
+	args, err := ec.field_JwtQuery_token_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpsertRole(rctx, args["input"].(model.AddRole))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasRbac == nil {
-				return nil, errors.New("directive HasRbac is not implemented")
-			}
-			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, err
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.Role); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -762,12 +821,12 @@ func (ec *executionContext) _Mutation_upsertRole(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Role)
+	res := resTmp.(*model.Jwt)
 	fc.Result = res
-	return ec.marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_jwt(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -782,40 +841,9 @@ func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteRole_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().DeleteRole(rctx, args["input"].(model.DeleteRole))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasRbac == nil {
-				return nil, errors.New("directive HasRbac is not implemented")
-			}
-			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, err
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Jwt(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -827,12 +855,12 @@ func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.JwtMutation)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNJwtMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtMutation(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_rbac(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -847,17 +875,10 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deletePermission_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().DeletePermission(rctx, args["input"].(model.DeletePermission))
+			return ec.resolvers.Mutation().Rbac(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
@@ -877,10 +898,10 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(bool); ok {
+		if data, ok := tmp.(*model.RbacMutation); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.RbacMutation`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -892,12 +913,12 @@ func (ec *executionContext) _Mutation_deletePermission(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.RbacMutation)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNRbacMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacMutation(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_save(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _PermissionMutation_delete(ctx context.Context, field graphql.CollectedField, obj *model.PermissionMutation) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -905,40 +926,23 @@ func (ec *executionContext) _Mutation_save(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
+		Object:   "PermissionMutation",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_PermissionMutation_delete_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().Save(rctx)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_MUTATE")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasRbac == nil {
-				return nil, errors.New("directive HasRbac is not implemented")
-			}
-			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, err
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return obj.Delete, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1038,17 +1042,10 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_jwt_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().Jwt(rctx, args["token"].(string))
+			return ec.resolvers.Query().Jwt(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "JWT_QUERY")
@@ -1068,10 +1065,10 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.Jwt); ok {
+		if data, ok := tmp.(*model.JwtQuery); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.Jwt`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.JwtQuery`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1083,12 +1080,12 @@ func (ec *executionContext) _Query_jwt(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Jwt)
+	res := resTmp.(*model.JwtQuery)
 	fc.Result = res
-	return ec.marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
+	return ec.marshalNJwtQuery2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtQuery(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_rbac(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1103,17 +1100,10 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_permission_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().Permission(rctx, args["name"].(*string))
+			return ec.resolvers.Query().Rbac(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
@@ -1133,10 +1123,10 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.([]*string); ok {
+		if data, ok := tmp.(*model.RbacQuery); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*string`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/JeremyMarshall/gqlgen-jwt/graph/model.RbacQuery`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1148,74 +1138,9 @@ func (ec *executionContext) _Query_permission(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*string)
+	res := resTmp.(*model.RbacQuery)
 	fc.Result = res
-	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_role(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_role_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().Role(rctx, args["name"].(*string))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			rbac, err := ec.unmarshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbac(ctx, "RBAC_QUERY")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasRbac == nil {
-				return nil, errors.New("directive HasRbac is not implemented")
-			}
-			return ec.directives.HasRbac(ctx, nil, directive0, rbac)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, err
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.([]*model.Role); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/JeremyMarshall/gqlgen-jwt/graph/model.Role`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Role)
-	fc.Result = res
-	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRbacQuery2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacQuery(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1285,6 +1210,190 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RbacMutation_role(ctx context.Context, field graphql.CollectedField, obj *model.RbacMutation) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RbacMutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RoleMutation)
+	fc.Result = res
+	return ec.marshalNRoleMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRoleMutation(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RbacMutation_permission(ctx context.Context, field graphql.CollectedField, obj *model.RbacMutation) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RbacMutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Permission, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PermissionMutation)
+	fc.Result = res
+	return ec.marshalNPermissionMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPermissionMutation(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RbacMutation_save(ctx context.Context, field graphql.CollectedField, obj *model.RbacMutation) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RbacMutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Save, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RbacQuery_permission(ctx context.Context, field graphql.CollectedField, obj *model.RbacQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RbacQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_RbacQuery_permission_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Permission, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RbacQuery_role(ctx context.Context, field graphql.CollectedField, obj *model.RbacQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RbacQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_RbacQuery_role_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Role)
+	fc.Result = res
+	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Role_name(ctx context.Context, field graphql.CollectedField, obj *model.Role) (ret graphql.Marshaler) {
@@ -1381,6 +1490,88 @@ func (ec *executionContext) _Role_parents(ctx context.Context, field graphql.Col
 	res := resTmp.([]*string)
 	fc.Result = res
 	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoleMutation_upsert(ctx context.Context, field graphql.CollectedField, obj *model.RoleMutation) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RoleMutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_RoleMutation_upsert_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Upsert, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Role)
+	fc.Result = res
+	return ec.marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoleMutation_delete(ctx context.Context, field graphql.CollectedField, obj *model.RoleMutation) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RoleMutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_RoleMutation_delete_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Delete, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2579,6 +2770,60 @@ func (ec *executionContext) _Jwt(ctx context.Context, sel ast.SelectionSet, obj 
 	return out
 }
 
+var jwtMutationImplementors = []string{"JwtMutation"}
+
+func (ec *executionContext) _JwtMutation(ctx context.Context, sel ast.SelectionSet, obj *model.JwtMutation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jwtMutationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JwtMutation")
+		case "create":
+			out.Values[i] = ec._JwtMutation_create(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var jwtQueryImplementors = []string{"JwtQuery"}
+
+func (ec *executionContext) _JwtQuery(ctx context.Context, sel ast.SelectionSet, obj *model.JwtQuery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jwtQueryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JwtQuery")
+		case "token":
+			out.Values[i] = ec._JwtQuery_token(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2594,28 +2839,40 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createJwt":
-			out.Values[i] = ec._Mutation_createJwt(ctx, field)
+		case "jwt":
+			out.Values[i] = ec._Mutation_jwt(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "upsertRole":
-			out.Values[i] = ec._Mutation_upsertRole(ctx, field)
+		case "rbac":
+			out.Values[i] = ec._Mutation_rbac(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "deleteRole":
-			out.Values[i] = ec._Mutation_deleteRole(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deletePermission":
-			out.Values[i] = ec._Mutation_deletePermission(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "save":
-			out.Values[i] = ec._Mutation_save(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var permissionMutationImplementors = []string{"PermissionMutation"}
+
+func (ec *executionContext) _PermissionMutation(ctx context.Context, sel ast.SelectionSet, obj *model.PermissionMutation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, permissionMutationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PermissionMutation")
+		case "delete":
+			out.Values[i] = ec._PermissionMutation_delete(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2691,7 +2948,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "permission":
+		case "rbac":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2699,21 +2956,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_permission(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "role":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_role(ctx, field)
+				res = ec._Query_rbac(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2723,6 +2966,75 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var rbacMutationImplementors = []string{"RbacMutation"}
+
+func (ec *executionContext) _RbacMutation(ctx context.Context, sel ast.SelectionSet, obj *model.RbacMutation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rbacMutationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RbacMutation")
+		case "role":
+			out.Values[i] = ec._RbacMutation_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "permission":
+			out.Values[i] = ec._RbacMutation_permission(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "save":
+			out.Values[i] = ec._RbacMutation_save(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var rbacQueryImplementors = []string{"RbacQuery"}
+
+func (ec *executionContext) _RbacQuery(ctx context.Context, sel ast.SelectionSet, obj *model.RbacQuery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rbacQueryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RbacQuery")
+		case "permission":
+			out.Values[i] = ec._RbacQuery_permission(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "role":
+			out.Values[i] = ec._RbacQuery_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2754,6 +3066,38 @@ func (ec *executionContext) _Role(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Role_permissions(ctx, field, obj)
 		case "parents":
 			out.Values[i] = ec._Role_parents(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var roleMutationImplementors = []string{"RoleMutation"}
+
+func (ec *executionContext) _RoleMutation(ctx context.Context, sel ast.SelectionSet, obj *model.RoleMutation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roleMutationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoleMutation")
+		case "upsert":
+			out.Values[i] = ec._RoleMutation_upsert(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "delete":
+			out.Values[i] = ec._RoleMutation_delete(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3050,8 +3394,50 @@ func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlge
 	return ec._Jwt(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNJwtMutation2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtMutation(ctx context.Context, sel ast.SelectionSet, v model.JwtMutation) graphql.Marshaler {
+	return ec._JwtMutation(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNJwtMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtMutation(ctx context.Context, sel ast.SelectionSet, v *model.JwtMutation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._JwtMutation(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNJwtQuery2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtQuery(ctx context.Context, sel ast.SelectionSet, v model.JwtQuery) graphql.Marshaler {
+	return ec._JwtQuery(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNJwtQuery2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐJwtQuery(ctx context.Context, sel ast.SelectionSet, v *model.JwtQuery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._JwtQuery(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNNewJwt2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐNewJwt(ctx context.Context, v interface{}) (model.NewJwt, error) {
 	return ec.unmarshalInputNewJwt(ctx, v)
+}
+
+func (ec *executionContext) marshalNPermissionMutation2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPermissionMutation(ctx context.Context, sel ast.SelectionSet, v model.PermissionMutation) graphql.Marshaler {
+	return ec._PermissionMutation(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPermissionMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐPermissionMutation(ctx context.Context, sel ast.SelectionSet, v *model.PermissionMutation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PermissionMutation(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProperty2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐProperty(ctx context.Context, sel ast.SelectionSet, v model.Property) graphql.Marshaler {
@@ -3114,6 +3500,34 @@ func (ec *executionContext) marshalNRBAC2githubᚗcomᚋJeremyMarshallᚋgqlgen�
 	return v
 }
 
+func (ec *executionContext) marshalNRbacMutation2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacMutation(ctx context.Context, sel ast.SelectionSet, v model.RbacMutation) graphql.Marshaler {
+	return ec._RbacMutation(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRbacMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacMutation(ctx context.Context, sel ast.SelectionSet, v *model.RbacMutation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RbacMutation(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRbacQuery2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacQuery(ctx context.Context, sel ast.SelectionSet, v model.RbacQuery) graphql.Marshaler {
+	return ec._RbacQuery(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRbacQuery2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRbacQuery(ctx context.Context, sel ast.SelectionSet, v *model.RbacQuery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RbacQuery(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNRole2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
 	return ec._Role(ctx, sel, &v)
 }
@@ -3163,6 +3577,20 @@ func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlg
 		return graphql.Null
 	}
 	return ec._Role(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRoleMutation2githubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRoleMutation(ctx context.Context, sel ast.SelectionSet, v model.RoleMutation) graphql.Marshaler {
+	return ec._RoleMutation(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRoleMutation2ᚖgithubᚗcomᚋJeremyMarshallᚋgqlgenᚑjwtᚋgraphᚋmodelᚐRoleMutation(ctx context.Context, sel ast.SelectionSet, v *model.RoleMutation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RoleMutation(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

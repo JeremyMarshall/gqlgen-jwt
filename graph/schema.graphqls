@@ -49,25 +49,46 @@ input DeletePermission {
   permission: String!
 }
 
+type JwtMutation {
+   create(input: NewJwt!): String!
+}
 
+type RoleMutation {
+  upsert(input: AddRole!): Role!
+  delete(input: DeleteRole!): Boolean!
+}
+
+type PermissionMutation {
+  delete(input: DeletePermission!): Boolean! 
+}
+
+type RbacMutation {
+  role: RoleMutation!
+  permission: PermissionMutation!
+  save: Boolean! 
+}
 
 type Mutation {
   # JWT mutations
-  createJwt(input: NewJwt!): String!
+  jwt: JwtMutation!
 
   # RBAC mutations
-  upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
-  deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
-  deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
-  save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  rbac: RbacMutation! @HasRbac(rbac: RBAC_MUTATE)
+}
+
+type JwtQuery {
+    token(token: String!): Jwt!
+}
+
+type RbacQuery {
+  permission(name: String): [String]!
+  role(name: String): [Role]! 
 }
 
 type Query {
   # JWT queries
-  jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
-
+  jwt: JwtQuery!  @HasRbac(rbac: JWT_QUERY)
 
   # RBAC queries
-  permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
-  role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
+  rbac: RbacQuery! @HasRbac(rbac: RBAC_QUERY)
 }

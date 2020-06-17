@@ -29,9 +29,21 @@ type Jwt struct {
 	Properties []*Property `json:"properties"`
 }
 
+type JwtMutation struct {
+	Create string `json:"create"`
+}
+
+type JwtQuery struct {
+	Token *Jwt `json:"token"`
+}
+
 type NewJwt struct {
 	User  string   `json:"user"`
 	Roles []string `json:"roles"`
+}
+
+type PermissionMutation struct {
+	Delete bool `json:"delete"`
 }
 
 type Property struct {
@@ -39,10 +51,26 @@ type Property struct {
 	Value string `json:"value"`
 }
 
+type RbacMutation struct {
+	Role       *RoleMutation       `json:"role"`
+	Permission *PermissionMutation `json:"permission"`
+	Save       bool                `json:"save"`
+}
+
+type RbacQuery struct {
+	Permission []*string `json:"permission"`
+	Role       []*Role   `json:"role"`
+}
+
 type Role struct {
 	Name        string    `json:"name"`
 	Permissions []*string `json:"permissions"`
 	Parents     []*string `json:"parents"`
+}
+
+type RoleMutation struct {
+	Upsert *Role `json:"upsert"`
+	Delete bool  `json:"delete"`
 }
 
 type Rbac string
