@@ -55,7 +55,7 @@ This too needs an auth token with roles `rbac-ro` for query and `rbac-rw` for mu
 
 ## Schema
 
-[./schema.graphqls][1]
+[schema.graphqls][1]
 
 ## Running
 
