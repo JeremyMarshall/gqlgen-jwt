@@ -55,18 +55,22 @@ This too needs an auth token with roles `rbac-ro` for query and `rbac-rw` for mu
 
 ## Schema
 
-()./schema.graphqls)
+[./schema.graphqls][1]
 
 ## Running
 
 Download the repo and run `make server`
-hit port (http://localhost:8088)
+hit port [http://localhost:8088][2]
 
 You can also download the docker image
 
 `docker run -p 8088:8088 jeremymarshall/gqlgen-jwt:latest`
 
 Or run in Kubernetes
+
 `make deploy`
 
+
+[1]: ./schema.graphqls
+[2]: http://localhost:8088
 
