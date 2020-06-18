@@ -71,6 +71,6 @@ Or run in Kubernetes
 `make deploy`
 
 
-[1]: ./schema.graphqls
+[1]: ./graph/schema.graphqls
 [2]: http://localhost:8088
 
