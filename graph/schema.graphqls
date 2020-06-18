@@ -1,0 +1,73 @@
+directive @HasRbac(rbac: RBAC!) on FIELD_DEFINITION
+
+enum RBAC {
+    JWT_QUERY
+    JWT_MUTATE
+    RBAC_QUERY
+    RBAC_MUTATE
+}
+
+# JWT 
+
+type Property {
+  name: String!
+  value: String!
+}
+
+type Jwt {
+  user: String!
+  roles: [String!]!
+  properties: [Property!]!
+}
+
+input NewJwt {
+  user: String!
+  roles: [String!]!
+}
+
+
+# RBAC
+
+type Role {
+  name: String!
+  permissions: [String]
+  parents: [String]
+}
+
+input AddRole {
+  name: String!
+  permissions: [String]
+  parents: [String]
+}
+
+input DeleteRole {
+  name: String!
+}
+
+input DeletePermission {
+  name: String!
+  permission: String!
+}
+
+
+
+type Mutation {
+  # JWT mutations
+  createJwt(input: NewJwt!): String!
+
+  # RBAC mutations
+  upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
+  deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
+}
+
+type Query {
+  # JWT queries
+  jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
+
+
+  # RBAC queries
+  permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
+  role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
+}

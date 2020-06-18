@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= JeremyMarshall/gqlgen-jwt:latest
+IMG ?= jeremymarshall/gqlgen-jwt:latest
 PORT ?= 8088
 
 # Build manager binary
@@ -7,12 +7,14 @@ api: bin fmt vet
 	go build -o bin/api 
 
 server: build
-	PORT=${PORT} go run ./server.go ${SERVEROPTS}
+	PORT=${PORT} go run ./main.go ${SERVEROPTS}
+
+gqlgen: graph/resolver.go
 
 graph/resolver.go: graph/*.graphqls gqlgen.yml
 	go run github.com/99designs/gqlgen --verbose
 
-build: bin tidy fmt vet
+build: bin tidy gqlgen fmt vet
 
 tidy:
 	go mod tidy
@@ -49,4 +51,4 @@ deploy:
 clean:
 	-rm -fr dist bin cover.out coverage.txt cp.out
 
-.PHONY: server build test diff fmt vet tidy cover docker-push docker-build
+.PHONY: server build test diff fmt vet tidy cover docker-push docker-build gqlgen

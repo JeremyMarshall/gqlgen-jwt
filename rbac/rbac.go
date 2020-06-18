@@ -2,8 +2,8 @@ package rbac
 
 import (
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"sync"
 
 	"gopkg.in/yaml.v2"
@@ -15,22 +15,12 @@ func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
-func LoadYaml(filename string, v interface{}) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return yaml.NewDecoder(f).Decode(v)
+func LoadYaml(reader io.Reader, v interface{}) error {
+	return yaml.NewDecoder(reader).Decode(v)
 }
 
-func SaveYaml(filename string, v interface{}) error {
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return yaml.NewEncoder(f).Encode(v)
+func SaveYaml(writer io.Writer, v interface{}) error {
+	return yaml.NewEncoder(writer).Encode(v)
 }
 
 type Role struct {
@@ -50,74 +40,83 @@ type Rbac struct {
 	mutex       *sync.Mutex
 }
 
-func NewRbac(yamlFile string) (*Rbac, error) {
+func NewRbac(reader io.Reader) (*Rbac, error) {
 
 	ret := &Rbac{
-		rbac:        gorbac.New(),
-		permissions: &gorbac.Permissions{},
-		yamlAll:     &Serialize{},
-		mutex:       &sync.Mutex{},
+		yamlAll: &Serialize{},
+		mutex:   &sync.Mutex{},
 	}
 
-	if err := LoadYaml("all.yaml", ret.yamlAll); err != nil {
+	if err := LoadYaml(reader, ret.yamlAll); err != nil {
 		return nil, err
 	}
 
-	for _, pid := range ret.yamlAll.Permissions {
-		(*ret.permissions)[pid] = gorbac.NewStdPermission(pid)
+	return ret.Load()
+}
+
+func (r *Rbac) Load() (*Rbac, error) {
+	r.rbac = gorbac.New()
+	r.permissions = &gorbac.Permissions{}
+
+	for _, pid := range r.yamlAll.Permissions {
+		(*r.permissions)[pid] = gorbac.NewStdPermission(pid)
 	}
 
-	for k, v := range ret.yamlAll.Roles {
+	for k, v := range r.yamlAll.Roles {
 		role := gorbac.NewStdRole(k)
 		for _, pid := range v.Permissions {
-			role.Assign((*ret.permissions)[pid])
+			role.Assign((*r.permissions)[pid])
 		}
-		ret.rbac.Add(role)
+		r.rbac.Add(role)
 	}
 
-	for k, v := range ret.yamlAll.Roles {
-		if err := ret.rbac.SetParents(k, v.Parents); err != nil {
+	for k, v := range r.yamlAll.Roles {
+		if err := r.rbac.SetParents(k, v.Parents); err != nil {
 			return nil, err
 		}
 	}
 
-	return ret, nil
+	return r, nil
+}
 
-	// // Check if `editor` can add text
-	// if rbac.IsGranted("editor", permissions["add-text"], nil) {
-	// 	log.Println("Editor can add text")
-	// }
-	// // Check if `chief-editor` can add text
-	// if rbac.IsGranted("chief-editor", permissions["add-text"], nil) {
-	// 	log.Println("Chief editor can add text")
-	// }
-	// // Check if `photographer` can add text
-	// if !rbac.IsGranted("photographer", permissions["add-text"], nil) {
-	// 	log.Println("Photographer can't add text")
-	// }
-	// // Check if `nobody` can add text
-	// // `nobody` is not exist in goRBAC at the moment
-	// if !rbac.IsGranted("nobody", permissions["read-text"], nil) {
-	// 	log.Println("Nobody can't read text")
-	// }
-	// // Add `nobody` and assign `read-text` permission
-	// nobody := gorbac.NewStdRole("nobody")
-	// permissions["read-text"] = gorbac.NewStdPermission("read-text")
-	// nobody.Assign(permissions["read-text"])
-	// rbac.Add(nobody)
+func (r *Rbac) Save(writer io.Writer) error {
 
-	// yamlAll.Roles["nobody"] = Role{
-	// 	Permissions: []string{"read-text"},
-	// }
+	// remove any permissions not mentioned in roles
+	r.yamlAll.Permissions = make([]string, 0)
 
-	// // Check if `nobody` can read text again
-	// if rbac.IsGranted("nobody", permissions["read-text"], nil) {
-	// 	log.Println("Nobody can read text")
-	// }
+	for _, v := range r.yamlAll.Roles {
+		for _, pid := range v.Permissions {
+			r.yamlAll.Permissions = appendIfMissing(r.yamlAll.Permissions, &pid)
+		}
+	}
 
-	// if err := SaveYaml("new-all.yaml", &yamlAll); err != nil {
-	// 	log.Fatal(err)
-	// }
+	err := SaveYaml(writer, r.yamlAll)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Load()
+
+	return err
+}
+
+func appendIfMissing(slice []string, i *string) []string {
+	for _, ele := range slice {
+		if ele == *i {
+			return slice
+		}
+	}
+	return append(slice, *i)
+}
+func (r *Rbac) Check(roles []string, permission string) bool {
+	for _, role := range roles {
+		if p, ok := (*r.permissions)[permission]; ok {
+			if r.rbac.IsGranted(role, p, nil) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r *Rbac) GetRoles(name *string) (map[string]Role, error) {
@@ -142,15 +141,6 @@ func (r *Rbac) GetPermissions(name *string) ([]string, error) {
 	return nil, fmt.Errorf("Permission %s not found", *name)
 }
 
-func appendIfMissing(slice []string, i *string) []string {
-	for _, ele := range slice {
-		if ele == *i {
-			return slice
-		}
-	}
-	return append(slice, *i)
-}
-
 func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Role, error) {
 	r.mutex.Lock()
 	var role Role
@@ -168,6 +158,11 @@ func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Rol
 	}
 
 	for _, v := range parents {
+		if _, err := r.GetRoles(v); err != nil {
+			r.mutex.Unlock()
+			return Role{}, fmt.Errorf("Parent role %s not found", *v)
+		}
+
 		role.Parents = appendIfMissing(role.Parents, v)
 	}
 

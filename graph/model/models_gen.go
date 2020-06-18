@@ -2,6 +2,12 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type AddRole struct {
 	Name        string    `json:"name"`
 	Permissions []*string `json:"permissions"`
@@ -37,4 +43,49 @@ type Role struct {
 	Name        string    `json:"name"`
 	Permissions []*string `json:"permissions"`
 	Parents     []*string `json:"parents"`
+}
+
+type Rbac string
+
+const (
+	RbacJwtQuery   Rbac = "JWT_QUERY"
+	RbacJwtMutate  Rbac = "JWT_MUTATE"
+	RbacRbacQuery  Rbac = "RBAC_QUERY"
+	RbacRbacMutate Rbac = "RBAC_MUTATE"
+)
+
+var AllRbac = []Rbac{
+	RbacJwtQuery,
+	RbacJwtMutate,
+	RbacRbacQuery,
+	RbacRbacMutate,
+}
+
+func (e Rbac) IsValid() bool {
+	switch e {
+	case RbacJwtQuery, RbacJwtMutate, RbacRbacQuery, RbacRbacMutate:
+		return true
+	}
+	return false
+}
+
+func (e Rbac) String() string {
+	return string(e)
+}
+
+func (e *Rbac) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Rbac(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RBAC", str)
+	}
+	return nil
+}
+
+func (e Rbac) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

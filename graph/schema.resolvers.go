@@ -1,10 +1,15 @@
 package graph
 
+// This file will be automatically regenerated based on the schema, any resolver implementations
+// will be copied through when generating and any unknown code will be moved to the end.
+
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -16,10 +21,10 @@ func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (s
 		"user":  input.User,
 		"roles": input.Roles,
 
-		"iss": ISSUER,
+		"iss": Issuer,
 		"sub": "gqlgen properties",
 		"aud": "gqlgen",
-		"exp": time.Now().Add(time.Minute * EXPIRY_MINS).Unix(),
+		"exp": time.Now().Add(time.Minute * ExpiryMins).Unix(),
 		"nbf": time.Now().Unix(),
 		"iat": time.Now().Unix(),
 		// iss	Issuer			Identifies principal that issued the JWT.
@@ -32,9 +37,37 @@ func (r *mutationResolver) CreateJwt(ctx context.Context, input model.NewJwt) (s
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(JWT_SECRET))
+	tokenString, err := token.SignedString([]byte(r.JwtSecret))
 
 	return tokenString, err
+}
+
+func (r *mutationResolver) UpsertRole(ctx context.Context, input model.AddRole) (*model.Role, error) {
+	// If the role exists, update the permissions
+	// If the role doesn't exist create it and add the permissions
+	role, err := r.Rbac.UpsertRole(&input.Name, input.Permissions, input.Parents)
+	if err != nil {
+		return nil, err
+	}
+	return convertRole(input.Name, role), nil
+}
+
+func (r *mutationResolver) DeleteRole(ctx context.Context, input model.DeleteRole) (bool, error) {
+	return r.Rbac.DeleteRole(&input.Name)
+}
+
+func (r *mutationResolver) DeletePermission(ctx context.Context, input model.DeletePermission) (bool, error) {
+	return r.Rbac.DeletePermission(&input.Name, &input.Permission)
+}
+
+func (r *mutationResolver) Save(ctx context.Context) (bool, error) {
+	f, err := os.Create(r.Serialize)
+	defer f.Close()
+	if err != nil {
+		return false, err
+	}
+	err = r.Rbac.Save(f)
+	return err == nil, err
 }
 
 func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, error) {
@@ -49,7 +82,7 @@ func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, erro
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(JWT_SECRET), nil
+		return []byte(r.JwtSecret), nil
 	})
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
@@ -77,3 +110,38 @@ func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, erro
 	}
 	return nil, err
 }
+
+func (r *queryResolver) Permission(ctx context.Context, name *string) ([]*string, error) {
+	perm, err := r.Rbac.GetPermissions(name)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*string, 0)
+	for i := range perm {
+		ret = append(ret, &perm[i])
+	}
+	return ret, nil
+}
+
+func (r *queryResolver) Role(ctx context.Context, name *string) ([]*model.Role, error) {
+	ret := make([]*model.Role, 0)
+	roles, err := r.Rbac.GetRoles(name)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range roles {
+		ret = append(ret, convertRole(k, v))
+	}
+
+	return ret, nil
+}
+
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
+// Query returns generated.QueryResolver implementation.
+func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
