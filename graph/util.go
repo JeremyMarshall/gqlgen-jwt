@@ -2,7 +2,7 @@ package graph
 
 import (
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
-	"github.com/JeremyMarshall/gqlgen-jwt/rbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	GorbacYaml    = "./all.yaml"
 )
 
-func convertRole(k string, v rbac.Role) *model.Role {
+func convertRole(k string, v types.Role) *model.Role {
 	r := &model.Role{
 		Name:        k,
 		Permissions: make([]*string, 0),

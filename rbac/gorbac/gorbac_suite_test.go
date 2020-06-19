@@ -1,4 +1,4 @@
-package rbac_test
+package gorbac_test
 
 import (
 	"testing"

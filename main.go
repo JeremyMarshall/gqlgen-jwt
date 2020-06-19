@@ -14,7 +14,7 @@ import (
 	"github.com/JeremyMarshall/gqlgen-jwt/graph"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
-	"github.com/JeremyMarshall/gqlgen-jwt/rbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/gorbac"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
@@ -73,7 +73,7 @@ func getCurrentUser(ctx context.Context) *User {
 
 type rbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
 
-func rbacMiddleware(rbacChecker *rbac.Rbac) rbacMiddlewareFunc {
+func rbacMiddleware(rbacChecker *gorbac.Rbac) rbacMiddlewareFunc {
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
 		if !rbacChecker.Check(getCurrentUser(ctx).Roles, rbac.String()) {
 			// block calling the next resolver
@@ -107,13 +107,13 @@ func main() {
 	}
 	defer f.Close()
 
-	rbac, err := rbac.NewRbac(f)
+	rbac, err := gorbac.NewRbac(f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	resolver := &graph.Resolver{
-		Rbac:      rbac,
+		Rbac:      *rbac,
 		JwtSecret: jwtSecret,
 		Serialize: gorbacYaml,
 	}

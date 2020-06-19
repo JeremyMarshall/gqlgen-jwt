@@ -1,4 +1,4 @@
-package rbac
+package gorbac
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 	"github.com/mikespook/gorbac"
 )
 
@@ -23,14 +24,9 @@ func SaveYaml(writer io.Writer, v interface{}) error {
 	return yaml.NewEncoder(writer).Encode(v)
 }
 
-type Role struct {
-	Permissions []string `yaml:"permissions"`
-	Parents     []string `yaml:"parents"`
-}
-
 type Serialize struct {
-	Permissions []string        `yaml:"permissions"`
-	Roles       map[string]Role `yaml:"roles"`
+	Permissions []string              `yaml:"permissions"`
+	Roles       map[string]types.Role `yaml:"roles"`
 }
 
 type Rbac struct {
@@ -119,12 +115,12 @@ func (r *Rbac) Check(roles []string, permission string) bool {
 	return false
 }
 
-func (r *Rbac) GetRoles(name *string) (map[string]Role, error) {
+func (r *Rbac) GetRoles(name *string) (map[string]types.Role, error) {
 	if name == nil {
 		return r.yamlAll.Roles, nil
 	}
 	if role, ok := r.yamlAll.Roles[*name]; ok {
-		return map[string]Role{*name: role}, nil
+		return map[string]types.Role{*name: role}, nil
 	}
 	return nil, fmt.Errorf("Role %s not found", *name)
 }
@@ -141,14 +137,14 @@ func (r *Rbac) GetPermissions(name *string) ([]string, error) {
 	return nil, fmt.Errorf("Permission %s not found", *name)
 }
 
-func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Role, error) {
+func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (types.Role, error) {
 	r.mutex.Lock()
-	var role Role
+	var role types.Role
 	var ok bool
 
 	if role, ok = r.yamlAll.Roles[*name]; !ok {
 		// not found so add it
-		role = Role{}
+		role = types.Role{}
 		r.yamlAll.Roles[*name] = role
 	}
 
@@ -160,7 +156,7 @@ func (r *Rbac) UpsertRole(name *string, perms []*string, parents []*string) (Rol
 	for _, v := range parents {
 		if _, err := r.GetRoles(v); err != nil {
 			r.mutex.Unlock()
-			return Role{}, fmt.Errorf("Parent role %s not found", *v)
+			return types.Role{}, fmt.Errorf("Parent role %s not found", *v)
 		}
 
 		role.Parents = appendIfMissing(role.Parents, v)
@@ -188,7 +184,7 @@ func (r *Rbac) DeleteRole(name *string) (bool, error) {
 
 func (r *Rbac) DeletePermission(name *string, permission *string) (bool, error) {
 	r.mutex.Lock()
-	var role Role
+	var role types.Role
 	var ok bool
 
 	if role, ok = r.yamlAll.Roles[*name]; !ok {
