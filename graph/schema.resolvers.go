@@ -70,6 +70,38 @@ func (r *mutationResolver) Save(ctx context.Context) (bool, error) {
 	return err == nil, err
 }
 
+func (r *mutationResolver) AddNewspaper(ctx context.Context, name string) (string, error) {
+	return "Add Newspaper", nil
+}
+
+func (r *mutationResolver) DeleteNewspaper(ctx context.Context, name string) (bool, error) {
+	return true, nil
+}
+
+func (r *mutationResolver) AddStaff(ctx context.Context, input model.ModStaff) (string, error) {
+	return "Add Staff", nil
+}
+
+func (r *mutationResolver) AddStory(ctx context.Context, input model.AddStory) (string, error) {
+	return "Add Story", nil
+}
+
+func (r *mutationResolver) AddPhoto(ctx context.Context, input model.AddPhoto) (string, error) {
+	return "Add Photo", nil
+}
+
+func (r *mutationResolver) DeleteStaff(ctx context.Context, input model.ModStaff) (bool, error) {
+	return true, nil
+}
+
+func (r *mutationResolver) DeleteStory(ctx context.Context, input model.DeleteMedia) (bool, error) {
+	return true, nil
+}
+
+func (r *mutationResolver) DeletePhoto(ctx context.Context, input model.DeleteMedia) (bool, error) {
+	return true, nil
+}
+
 func (r *queryResolver) Jwt(ctx context.Context, token string) (*model.Jwt, error) {
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
