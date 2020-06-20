@@ -32,7 +32,7 @@ func AuthMiddleware(next http.Handler, secret string) http.Handler {
 		SigningMethod: jwt.SigningMethodHS256,
 		Debug:         true,
 		// Set this to false if you always want a bearer token present
-		CredentialsOptional: true,
+		CredentialsOptional: false,
 		UserProperty:        graph.JwtTokenField,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
 			data := gqlerror.Error{

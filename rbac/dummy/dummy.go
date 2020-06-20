@@ -21,7 +21,7 @@ func (d *Dummy) GetPermissions(name *string) ([]string, error) {
 
 func (d *Dummy) GetRoles(name *string) (map[string]types.Role, error) {
 	if name == nil {
-		return map[string]types.Role{"role1": {}, "role2":{}}, nil
+		return map[string]types.Role{"role1": {}, "role2": {}}, nil
 	}
 	if *name == "error" {
 		return nil, fmt.Errorf("Role error")

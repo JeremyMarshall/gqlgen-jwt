@@ -54,8 +54,8 @@ var _ = Describe("Schema.Resolvers", func() {
 		Context("Cannot upsert invalid role", func() {
 			It("should fail", func() {
 				_, err := resolver.Mutation().UpsertRole(
-					context.Background(), 
-					model.AddRole{Name: "error"},)
+					context.Background(),
+					model.AddRole{Name: "error"})
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -73,7 +73,7 @@ var _ = Describe("Schema.Resolvers", func() {
 		Context("Cannot delete invalid role", func() {
 			It("should fail", func() {
 				_, err := resolver.Mutation().DeleteRole(
-					context.Background(), 
+					context.Background(),
 					model.DeleteRole{
 						Name: "error",
 					})
@@ -93,7 +93,7 @@ var _ = Describe("Schema.Resolvers", func() {
 		Context("Cannot delete invalid permission", func() {
 			It("should fail", func() {
 				_, err := resolver.Mutation().DeletePermission(
-					context.Background(), 
+					context.Background(),
 					model.DeletePermission{
 						Name: "error",
 					})
@@ -131,7 +131,7 @@ var _ = Describe("Schema.Resolvers", func() {
 		Context("Cannot delete invalid permission", func() {
 			It("should fail", func() {
 				_, err := resolver.Mutation().DeletePermission(
-					context.Background(), 
+					context.Background(),
 					model.DeletePermission{
 						Name: "error",
 					})
