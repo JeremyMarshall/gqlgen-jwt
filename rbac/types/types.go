@@ -23,6 +23,6 @@ type RbacMutate interface {
 	UpsertRole(name *string, perms []*string, parents []*string) (Role, error)
 	DeleteRole(name *string) (bool, error)
 	DeletePermission(name *string, permission *string) (bool, error)
-	Load() (*Rbac, error)
+	Load() error
 	Save(writer io.Writer) error
 }

@@ -113,7 +113,7 @@ func main() {
 	}
 
 	resolver := &graph.Resolver{
-		Rbac:      *rbac,
+		Rbac:      rbac,
 		JwtSecret: jwtSecret,
 		Serialize: gorbacYaml,
 	}

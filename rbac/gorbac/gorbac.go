@@ -47,10 +47,11 @@ func NewRbac(reader io.Reader) (*Rbac, error) {
 		return nil, err
 	}
 
-	return ret.Load()
+	err := ret.Load()
+	return ret, err
 }
 
-func (r *Rbac) Load() (*Rbac, error) {
+func (r *Rbac) Load() error {
 	r.rbac = gorbac.New()
 	r.permissions = &gorbac.Permissions{}
 
@@ -68,11 +69,11 @@ func (r *Rbac) Load() (*Rbac, error) {
 
 	for k, v := range r.yamlAll.Roles {
 		if err := r.rbac.SetParents(k, v.Parents); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return r, nil
+	return nil
 }
 
 func (r *Rbac) Save(writer io.Writer) error {
@@ -91,7 +92,7 @@ func (r *Rbac) Save(writer io.Writer) error {
 		return err
 	}
 
-	_, err = r.Load()
+	err = r.Load()
 
 	return err
 }
