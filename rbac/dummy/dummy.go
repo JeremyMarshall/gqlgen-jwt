@@ -91,6 +91,12 @@ func (d *Dummy) Check(roles []string, permission string) bool {
 	if permission == "error" {
 		return false
 	}
+	if roles == nil {
+		return false
+	}
+	if len(roles) == 0 {
+		return false
+	}
 	for _, r := range roles {
 		if r == "error" {
 			return false

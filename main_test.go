@@ -11,19 +11,18 @@ import (
 	"context"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/dummy"
 	"net/http"
 	"net/http/httptest"
-	// "github.com/JeremyMarshall/gqlgen-jwt/rbac/dummy"
-)
+	jwt "github.com/dgrijalva/jwt-go"
 
-// func NewContextWithRequestID(ctx context.Context, r *http.Request) context.Context {
-// 	return context.WithValue(ctx, "reqId", "1234")
-// }
+)
 
 var _ = Describe("Main", func() {
 	var (
 		resolver *graph.Resolver
-		token string
+		tokenString string
+		// token *jwt.Token
 	)
 
 	convertBody := func(input *bytes.Buffer) map[string]string {
@@ -33,34 +32,15 @@ var _ = Describe("Main", func() {
 		return m
 	}
 
-	// nextHandlerNoJwt := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	val := r.Context().Value("reqId")
-	//     Expect(val).To(BeNil())
-
-	//     valStr, ok := val.(string)
-	// 	Expect(ok).To(BeTrue())
-	//     Expect(valStr).To(Equal("1234"))
-	// })
-
-	// nextHandlerInvalidJwt := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	val := r.Context().Value("reqId")
-	//     Expect(val).To(BeNil())
-
-	//     valStr, ok := val.(string)
-	// 	Expect(ok).To(BeTrue())
-	//     Expect(valStr).To(Equal("1234"))
-	// })
-
 	BeforeEach(func() {
 		// get a new token as they expire
 		var err error
 		resolver = &graph.Resolver{
 			JwtSecret: graph.JwtSecret,
 		}
-		token, err = resolver.Mutation().CreateJwt(context.Background(), model.NewJwt{User: "aa", Roles: []string{"jwt", "rbac-rw"}})
-		fmt.Println(token)
+		tokenString, err = resolver.Mutation().CreateJwt(context.Background(), model.NewJwt{User: "aa", Roles: []string{"jwt", "rbac-rw"}})
 		Expect(err).To(BeNil())
-		Expect(token).NotTo(BeNil())
+		Expect(tokenString).NotTo(BeNil())
 	})
 
 	Describe("jwt middleware", func() {
@@ -79,7 +59,7 @@ var _ = Describe("Main", func() {
 				})
 
 				req, err := http.NewRequest("GET", "/query", nil)
-				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenString))
 				Expect(err).To(BeNil())
 
 				// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
@@ -151,4 +131,58 @@ var _ = Describe("Main", func() {
 			})
 		})
 	})
+
+	Describe("gql middleware", func() {
+
+		Context("Role fulfils permission", func() {
+			It("should succeed", func() {
+				rbac := &dummy.Dummy{ }
+				rbw := RbacMiddleware(rbac)
+
+				next := func(ctx context.Context) (res interface{}, err error){
+					return true, nil
+				}
+
+				token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+					return []byte(graph.JwtSecret), nil
+				})
+				Expect(err).To(BeNil())
+
+				ctx := context.WithValue(context.Background(), graph.JwtTokenField, token)
+
+				ok, err := rbw( ctx, nil, next, "RBAC_MUTATE")
+				Expect(err).To(BeNil())
+				Expect(ok).To(BeTrue())
+
+			})
+		})
+
+		Context("Role doesn't fulfil permission", func() {
+			It("should fail", func() {
+				rbac := &dummy.Dummy{ }
+				rbw := RbacMiddleware(rbac)
+
+				next := func(ctx context.Context) (res interface{}, err error){
+					return true, nil
+				}
+
+				tokenString2, err := resolver.Mutation().CreateJwt(context.Background(), model.NewJwt{User: "aa", Roles: []string{}})
+				Expect(err).To(BeNil())
+				Expect(tokenString).NotTo(BeNil())
+
+				token, err := jwt.Parse(tokenString2, func(token *jwt.Token) (interface{}, error) {
+					return []byte(graph.JwtSecret), nil
+				})
+				Expect(err).To(BeNil())
+
+				ctx := context.WithValue(context.Background(), graph.JwtTokenField, token)
+
+				_, err = rbw( ctx, nil, next, "RBAC_MUTATE")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+	})
+
+
 })

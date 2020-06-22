@@ -15,11 +15,14 @@ import (
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 	"github.com/JeremyMarshall/gqlgen-jwt/rbac/gorbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
+
+
 
 func AuthMiddleware(next http.Handler, secret string) http.Handler {
 	if len(secret) == 0 {
@@ -71,9 +74,9 @@ func GetCurrentUser(ctx context.Context) *User {
 	return &User{}
 }
 
-type rbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
+type RbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
 
-func rbacMiddleware(rbacChecker *gorbac.Rbac) rbacMiddlewareFunc {
+func RbacMiddleware(rbacChecker types.Rbac) RbacMiddlewareFunc {
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
 		if !rbacChecker.Check(GetCurrentUser(ctx).Roles, rbac.String()) {
 			// block calling the next resolver
@@ -121,7 +124,7 @@ func main() {
 	c := generated.Config{
 		Resolvers: resolver,
 		Directives: generated.DirectiveRoot{
-			HasRbac: rbacMiddleware(rbac),
+			HasRbac: RbacMiddleware(rbac),
 		},
 	}
 
