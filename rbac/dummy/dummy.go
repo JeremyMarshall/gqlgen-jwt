@@ -36,7 +36,27 @@ func (d *Dummy) UpsertRole(name *string, perms []*string, parents []*string) (ty
 	if *name == "error" {
 		return types.Role{}, fmt.Errorf("Upsert error")
 	}
-	return types.Role{}, nil
+
+	ret := types.Role{
+		Permissions: make([]string,0),
+		Parents: make([]string,0),
+	}
+
+	for _, p := range perms {
+		if *p == "error" {
+			return types.Role{}, fmt.Errorf("Upsert error")
+		}
+		ret.Permissions = append(ret.Permissions, *p)
+	}
+
+	for _, p := range parents {
+		if *p == "error" {
+			return types.Role{}, fmt.Errorf("Upsert error")
+		}
+		ret.Parents = append(ret.Parents, *p)
+	}
+
+	return ret, nil
 }
 
 func (d *Dummy) DeleteRole(name *string) (bool, error) {
@@ -65,4 +85,16 @@ func (d *Dummy) Load() error {
 
 func (d *Dummy) Save(writer io.Writer) error {
 	return nil
+}
+
+func (d *Dummy) Check(roles []string, permission string) bool {
+	if permission == "error" {
+		return false
+	}
+	for _, r := range roles {
+		if r == "error" {
+			return false
+		}
+	}
+	return true
 }

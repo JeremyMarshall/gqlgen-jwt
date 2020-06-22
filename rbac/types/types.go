@@ -12,7 +12,7 @@ type Role struct {
 type Rbac interface {
 	RbacQuery
 	RbacMutate
-	// Check(roles []string, permission string) bool
+	Check(roles []string, permission string) bool
 }
 
 type RbacQuery interface {
