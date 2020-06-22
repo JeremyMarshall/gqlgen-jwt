@@ -32,7 +32,7 @@ func AuthMiddleware(next http.Handler, secret string) http.Handler {
 		SigningMethod: jwt.SigningMethodHS256,
 		Debug:         true,
 		// Set this to false if you always want a bearer token present
-		CredentialsOptional: false,
+		CredentialsOptional: true,
 		UserProperty:        graph.JwtTokenField,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
 			data := gqlerror.Error{
@@ -53,7 +53,7 @@ type User struct {
 	Roles []string
 }
 
-func getCurrentUser(ctx context.Context) *User {
+func GetCurrentUser(ctx context.Context) *User {
 	if rawToken := ctx.Value(graph.JwtTokenField); rawToken != nil {
 		token := rawToken.(*jwt.Token)
 
@@ -75,7 +75,7 @@ type rbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.
 
 func rbacMiddleware(rbacChecker *gorbac.Rbac) rbacMiddlewareFunc {
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
-		if !rbacChecker.Check(getCurrentUser(ctx).Roles, rbac.String()) {
+		if !rbacChecker.Check(GetCurrentUser(ctx).Roles, rbac.String()) {
 			// block calling the next resolver
 			return nil, fmt.Errorf("Access denied")
 		}

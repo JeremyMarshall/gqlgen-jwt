@@ -1,68 +1,153 @@
 package main_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	. "github.com/JeremyMarshall/gqlgen-jwt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/JeremyMarshall/gqlgen-jwt"
+
 	"context"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph"
+	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
 	"net/http"
 	"net/http/httptest"
+	// "github.com/JeremyMarshall/gqlgen-jwt/rbac/dummy"
 )
 
-func NewContextWithRequestID(ctx context.Context, r *http.Request) context.Context {
-	return context.WithValue(ctx, "reqId", "1234")
-}
+// func NewContextWithRequestID(ctx context.Context, r *http.Request) context.Context {
+// 	return context.WithValue(ctx, "reqId", "1234")
+// }
 
 var _ = Describe("Main", func() {
-	var ()
-	BeforeEach(func() {
+	var (
+		resolver *graph.Resolver
+		token string
+	)
 
+	convertBody := func(input *bytes.Buffer) map[string]string {
+		m := make(map[string]string)
+		err := json.Unmarshal(input.Bytes(), &m)
+		Expect(err).To(BeNil())
+		return m
+	}
+
+	// nextHandlerNoJwt := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	val := r.Context().Value("reqId")
+	//     Expect(val).To(BeNil())
+
+	//     valStr, ok := val.(string)
+	// 	Expect(ok).To(BeTrue())
+	//     Expect(valStr).To(Equal("1234"))
+	// })
+
+	// nextHandlerInvalidJwt := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	val := r.Context().Value("reqId")
+	//     Expect(val).To(BeNil())
+
+	//     valStr, ok := val.(string)
+	// 	Expect(ok).To(BeTrue())
+	//     Expect(valStr).To(Equal("1234"))
+	// })
+
+	BeforeEach(func() {
+		// get a new token as they expire
+		var err error
+		resolver = &graph.Resolver{
+			JwtSecret: graph.JwtSecret,
+		}
+		token, err = resolver.Mutation().CreateJwt(context.Background(), model.NewJwt{User: "aa", Roles: []string{"jwt", "rbac-rw"}})
+		fmt.Println(token)
+		Expect(err).To(BeNil())
+		Expect(token).NotTo(BeNil())
 	})
 
 	Describe("jwt middleware", func() {
 
 		Context("Can process bearer token", func() {
 			It("should succeed", func() {
+				next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					val := r.Context().Value("user")
+					Expect(val).NotTo(BeNil())
 
-				xxx := func(next http.Handler) http.Handler {
-					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						// var ctx context.Context
-						// ctx = NewContextWithRequestID(ctx, r)
-						// next.ServeHTTP(w, r.WithContext(ctx))
-						AuthMiddleware(next, "1234")
-					})
-				}
+					user := GetCurrentUser(r.Context())
 
-				// create a handler to use as "next" which will verify the request
-				nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					Expect(r.Context().Value("reqId")).To(Equal("1234"))
-					// val := r.Context().Value("reqId")
-					// if val == nil {
-					// 	t.Error("reqId not present")
-					// }
-					// valStr, ok := val.(string)
-					// if !ok {
-					// 	t.Error("not string")
-					// }
-					// if valStr != "1234" {
-					// 	t.Error("wrong reqId")
-					// }
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(user)
 				})
 
-				// create the handler to test, using our custom "next" handler
-				handlerToTest := xxx(nextHandler)
+				req, err := http.NewRequest("GET", "/query", nil)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+				Expect(err).To(BeNil())
 
-				// create a mock request to use
-				req := httptest.NewRequest("GET", "http://testing", nil)
-				req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJncWxnZW4iLCJleHAiOjE1OTI1NDY5MTcsImlhdCI6MTU5MjU0MzMxNywiaXNzIjoiaXNzdWVyIiwibmJmIjoxNTkyNTQzMzE3LCJyb2xlcyI6WyJqd3QiLCJyYmFjLXJ3Il0sInN1YiI6ImdxbGdlbiBwcm9wZXJ0aWVzIiwidXNlciI6ImFhIn0.3q7y_NSfuVaJ4AKuCV0be3GXrbZhvL9RqZGMfrfWcBI")
+				// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
+				rr := httptest.NewRecorder()
+				handler := AuthMiddleware(next, graph.JwtSecret)
 
-				rec := httptest.NewRecorder()
+				// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
+				// directly and pass in our Request and ResponseRecorder.
+				handler.ServeHTTP(rr, req)
 
-				// call the handler using a mock response recorder (we'll not use that anyway)
-				handlerToTest.ServeHTTP(rec, req)
+				// Check the status code is what we expect.
+				Expect(rr.Code).To(Equal(http.StatusOK))
 
-				Expect(rec).To(BeNil())
-				// Expect(jwt).ShouldNot(Equal(""))
+				// Check the response body is what we expect.
+				Expect(rr.Body).NotTo(BeNil())
+			})
+		})
+
+		Context("error invalid bearer token", func() {
+			It("should return error code", func() {
+				next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// this shouldn't get called
+					Expect(true).To(BeFalse())
+				})
+
+				req, err := http.NewRequest("GET", "/query", nil)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "invalid"))
+				Expect(err).To(BeNil())
+
+				// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
+				rr := httptest.NewRecorder()
+				handler := AuthMiddleware(next, graph.JwtSecret)
+
+				// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
+				// directly and pass in our Request and ResponseRecorder.
+				handler.ServeHTTP(rr, req)
+
+				// Check the status code is what we expect.
+				Expect(rr.Code).To(Equal(http.StatusUnauthorized))
+
+				// Check the response body is what we expect.
+				Expect(convertBody(rr.Body)).To(Equal(map[string]string{"message": "JWT Auth token contains an invalid number of segments"}))
+				Expect(rr.Body).NotTo(BeNil())
+			})
+		})
+
+		Context("No bearer token", func() {
+			It("should succeed", func() {
+				next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					val := r.Context().Value("user")
+					Expect(val).To(BeNil())
+
+					w.WriteHeader(http.StatusOK)
+				})
+
+				req, err := http.NewRequest("GET", "/query", nil)
+				Expect(err).To(BeNil())
+
+				// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
+				rr := httptest.NewRecorder()
+				handler := AuthMiddleware(next, graph.JwtSecret)
+
+				// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
+				// directly and pass in our Request and ResponseRecorder.
+				handler.ServeHTTP(rr, req)
+
+				// Check the status code is what we expect.
+				Expect(rr.Code).To(Equal(http.StatusOK))
 			})
 		})
 	})
