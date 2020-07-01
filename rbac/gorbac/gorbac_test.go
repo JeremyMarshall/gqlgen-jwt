@@ -1,7 +1,8 @@
-package rbac
+package gorbac
 
 import (
 	"bytes"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"strings"
@@ -59,9 +60,9 @@ roles:
 			It("should succeed", func() {
 				s := &Serialize{
 					Permissions: []string{"perm1", "perm2"},
-					Roles: map[string]Role{
-						"role1": Role{Permissions: []string{"perm1"}},
-						"role2": Role{
+					Roles: map[string]types.Role{
+						"role1": types.Role{Permissions: []string{"perm1"}},
+						"role2": types.Role{
 							Permissions: []string{"perm2"},
 							Parents:     []string{"role1"},
 						},

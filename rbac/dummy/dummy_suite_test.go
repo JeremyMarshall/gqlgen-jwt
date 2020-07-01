@@ -1,4 +1,4 @@
-package rbac_test
+package dummy_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestRbac(t *testing.T) {
+func TestDummy(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Rbac Suite")
+	RunSpecs(t, "Dummy Suite")
 }

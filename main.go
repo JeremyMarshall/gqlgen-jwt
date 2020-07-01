@@ -14,10 +14,12 @@ import (
 	"github.com/JeremyMarshall/gqlgen-jwt/graph"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
-	"github.com/JeremyMarshall/gqlgen-jwt/rbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/gorbac"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
+	"github.com/namsral/flag"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
@@ -53,7 +55,7 @@ type User struct {
 	Roles []string
 }
 
-func getCurrentUser(ctx context.Context) *User {
+func GetCurrentUser(ctx context.Context) *User {
 	if rawToken := ctx.Value(graph.JwtTokenField); rawToken != nil {
 		token := rawToken.(*jwt.Token)
 
@@ -71,11 +73,12 @@ func getCurrentUser(ctx context.Context) *User {
 	return &User{}
 }
 
-type rbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
+type RbacMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error)
+type RbacDomainMiddlewareFunc func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac, domainFiled model.Domain) (res interface{}, err error)
 
-func rbacMiddleware(rbacChecker *rbac.Rbac) rbacMiddlewareFunc {
+func RbacMiddleware(rbacChecker types.Rbac) RbacMiddlewareFunc {
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
-		if !rbacChecker.Check(getCurrentUser(ctx).Roles, rbac.String()) {
+		if !rbacChecker.Check(GetCurrentUser(ctx).Roles, rbac.String()) {
 			// block calling the next resolver
 			return nil, fmt.Errorf("Access denied")
 		}
@@ -85,51 +88,72 @@ func rbacMiddleware(rbacChecker *rbac.Rbac) rbacMiddlewareFunc {
 	}
 }
 
+func RbacDomainMiddleware(rbacChecker types.Rbac) RbacDomainMiddlewareFunc {
+	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac, domainString model.Domain) (res interface{}, err error) {
+
+		if args, ok := obj.(map[string]interface{}); ok {
+			if domain, ok := args[domainString.String()].(string); ok {
+				if rbacChecker.CheckDomain(GetCurrentUser(ctx).Roles, &domain, rbac.String()) {
+					return next(ctx)
+				}
+			}
+		}
+		return nil, fmt.Errorf("Access denied")
+	}
+}
+
+type opts struct {
+	Port       string
+	GorbacYaml string
+	JwtSecret  string
+}
+
+func NewOpts() *opts {
+	o := &opts{}
+
+	flag.StringVar(&o.Port, "port", graph.DefaultPort, "Port number")
+	flag.StringVar(&o.JwtSecret, "jwtSecret", graph.JwtSecret, "JWT Secret")
+	flag.StringVar(&o.GorbacYaml, "gorbacYaml", graph.GorbacYaml, "RBAC yaml")
+
+	flag.Parse()
+
+	return o
+}
+
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = graph.DefaultPort
-	}
 
-	gorbacYaml := os.Getenv("GORBAC")
-	if gorbacYaml == "" {
-		gorbacYaml = graph.GorbacYaml
-	}
+	opts := NewOpts()
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = graph.JwtSecret
-	}
-
-	f, err := os.Open(gorbacYaml)
+	f, err := os.Open(opts.GorbacYaml)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
-	rbac, err := rbac.NewRbac(f)
+	rbac, err := gorbac.NewRbac(f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	resolver := &graph.Resolver{
 		Rbac:      rbac,
-		JwtSecret: jwtSecret,
-		Serialize: gorbacYaml,
+		JwtSecret: opts.JwtSecret,
+		Serialize: opts.GorbacYaml,
 	}
 
 	c := generated.Config{
 		Resolvers: resolver,
 		Directives: generated.DirectiveRoot{
-			HasRbac: rbacMiddleware(rbac),
+			HasRbac:       RbacMiddleware(rbac),
+			HasRbacDomain: RbacDomainMiddleware(rbac),
 		},
 	}
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", AuthMiddleware(handlers.LoggingHandler(os.Stdout, srv), jwtSecret))
+	http.Handle("/query", AuthMiddleware(handlers.LoggingHandler(os.Stdout, srv), opts.JwtSecret))
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", opts.Port)
+	log.Fatal(http.ListenAndServe(":"+opts.Port, nil))
 }

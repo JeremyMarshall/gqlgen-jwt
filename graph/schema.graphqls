@@ -1,11 +1,24 @@
-directive @HasRbac(rbac: RBAC!) on FIELD_DEFINITION
 
 enum RBAC {
     JWT_QUERY
     JWT_MUTATE
+
     RBAC_QUERY
     RBAC_MUTATE
+
+    MOD_NEWSPAPER
+    MOD_STAFF
+    MOD_STORY
+    MOD_PHOTO
+    DEL_MEDIA
 }
+
+enum DOMAIN {
+  newspaper
+}
+
+directive @HasRbac(rbac: RBAC!) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+directive @HasRbacDomain(rbac: RBAC!, domainField: DOMAIN! ) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 # JWT 
 
@@ -45,29 +58,64 @@ input DeleteRole {
 }
 
 input DeletePermission {
-  name: String!
+  name: String! @HasRbac(rbac: RBAC_MUTATE)
   permission: String!
 }
 
+# DOMAIN
 
+input AddStory {
+  newspaper: String! @HasRbacDomain(rbac: MOD_STORY, domainField: newspaper)
+  headline: String!
+  story: String!
+}
+
+input AddPhoto {
+  newspaper: String! @HasRbacDomain(rbac: MOD_PHOTO, domainField: newspaper)
+  caption: String!
+  filename: String!
+}
+
+input ModStaff {
+  newspaper: String! @HasRbacDomain(rbac: MOD_STAFF, domainField: newspaper)
+  name: String!
+}
+
+input DeleteMedia {
+  newspaper: String! @HasRbacDomain(rbac: DEL_MEDIA, domainField: newspaper)
+  uuid: String!
+}
 
 type Mutation {
   # JWT mutations
   createJwt(input: NewJwt!): String!
 
   # RBAC mutations
-  upsertRole(input: AddRole!): Role! @HasRbac(rbac: RBAC_MUTATE)
-  deleteRole(input: DeleteRole!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
-  deletePermission(input: DeletePermission!): Boolean! @HasRbac(rbac: RBAC_MUTATE)
+  upsertRole(input: AddRole! @HasRbac(rbac: RBAC_MUTATE)): Role! 
+  deleteRole(input: DeleteRole! @HasRbac(rbac: RBAC_MUTATE)): Boolean! 
+  deletePermission(input: DeletePermission!): Boolean! 
   save: Boolean! @HasRbac(rbac: RBAC_MUTATE)
+
+  # DOMAIN
+  addNewspaper(name: String! @HasRbac(rbac: MOD_NEWSPAPER)): String! 
+  deleteNewspaper(name: String! @HasRbac(rbac: MOD_NEWSPAPER)): Boolean!
+
+  addStaff(input: ModStaff!): String!
+  addStory(input: AddStory!): String!
+  addPhoto(input: AddPhoto!): String!
+
+  deleteStaff(input: ModStaff!): Boolean!
+  deleteStory(input: DeleteMedia!): Boolean!
+  deletePhoto(input: DeleteMedia!): Boolean!
 }
 
 type Query {
   # JWT queries
-  jwt(token: String!): Jwt! @HasRbac(rbac: JWT_QUERY)
+  jwt(token: String! @HasRbac(rbac: JWT_QUERY)): Jwt! 
 
 
   # RBAC queries
-  permission(name: String): [String]! @HasRbac(rbac: RBAC_QUERY)
-  role(name: String): [Role]! @HasRbac(rbac: RBAC_QUERY)
+  permission(name: String @HasRbac(rbac: RBAC_QUERY)): [String]! 
+  role(name: String @HasRbac(rbac: RBAC_QUERY)): [Role]! 
 }
+

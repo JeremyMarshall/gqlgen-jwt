@@ -1,43 +1,39 @@
 permissions:
 - del-text
 - del-photo
-- JWT_QUERY
-- RBAC_QUERY
-- RBAC_MUTATE
-- add-text
-- edit-text
-- insert-photo
-- add-photo
-- edit-photo
+- jwt-query
+- rbac-query
+- rbac-mutate
+- the-bugle-del-media
+- the-bugle-mod-story
+- the-bugle-mod-photo
+- the-bugle-mod-staff
 roles:
-  chief-editor:
+  the-bugle-chief-editor:
     permissions:
-    - del-text
-    - del-photo
+    - the-bugle-del-media
+    - the-bugle-mod-staff
     parents:
-    - editor
-    - photographer
-  editor:
+    - the-bugle-editor
+    - the-bugle-photographer
+  the-bugle-editor:
     permissions:
-    - add-text
-    - edit-text
-    - insert-photo
+    - the-bugle-mod-story
     parents: []
   jwt:
     permissions:
-    - JWT_QUERY
+    - jwt-query
     parents: []
-  photographer:
+  the-bugle-photographer:
     permissions:
-    - add-photo
-    - edit-photo
+    - the-bugle-mod-photo
     parents: []
   rbac-ro:
     permissions:
-    - RBAC_QUERY
+    - rbac-query
     parents: []
   rbac-rw:
     permissions:
-    - RBAC_MUTATE
+    - rbac-mutate
     parents:
     - rbac-ro
