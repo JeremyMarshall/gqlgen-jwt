@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= jeremymarshall/gqlgen-jwt:latest
+IMG ?= jeremymarshall/gqlgen-jwtapi:v0.1.1
 PORT ?= 8088
 
 # Build manager binary
