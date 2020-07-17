@@ -231,7 +231,7 @@ var _ = Describe("Main", func() {
 		Describe("options", func() {
 			Context("load from defaults", func() {
 				It("should use consts", func() {
-					opts := NewOpts()
+					opts := NewOpts([]string{"dummy"})
 					Expect(opts.Port).To(Equal(graph.DefaultPort))
 					Expect(opts.JwtSecret).To(Equal(graph.JwtSecret))
 					Expect(opts.GorbacYaml).To(Equal(graph.GorbacYaml))

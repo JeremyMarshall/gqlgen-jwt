@@ -1,6 +1,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= jeremymarshall/gqlgen-jwtapi:v0.1.1
 PORT ?= 8088
+SERVEROPTS ?= dummy
 
 # Build manager binary
 api: bin fmt vet

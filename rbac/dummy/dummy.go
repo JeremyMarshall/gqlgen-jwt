@@ -87,7 +87,7 @@ func (d *Dummy) Save(writer io.Writer) error {
 	return nil
 }
 
-func (d *Dummy) Check(roles []string, permission string) bool {
+func (d *Dummy) Check(user string, roles []string, permission string) bool {
 	if permission == "error" {
 		return false
 	}
@@ -105,12 +105,12 @@ func (d *Dummy) Check(roles []string, permission string) bool {
 	return true
 }
 
-func (d *Dummy) CheckDomain(roles []string, domain *string, permission string) bool {
+func (d *Dummy) CheckDomain(user string, roles []string, domain *string, permission string) bool {
 	if domain == nil {
 		return false
 	}
 	if *domain == "error" {
 		return false
 	}
-	return d.Check(roles, fmt.Sprintf("%s-%s", *domain, permission))
+	return d.Check(user, roles, fmt.Sprintf("%s-%s", *domain, permission))
 }

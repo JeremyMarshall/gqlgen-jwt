@@ -8,8 +8,8 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gorilla/handlers v1.4.2
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
+	github.com/integrii/flaggy v1.4.4
 	github.com/mikespook/gorbac v2.1.0+incompatible
-	github.com/namsral/flag v1.7.4-pre
 	github.com/onsi/ginkgo v1.13.0
 	github.com/onsi/gomega v1.10.1
 	github.com/vektah/gqlparser/v2 v2.0.1

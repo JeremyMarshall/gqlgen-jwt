@@ -12,8 +12,8 @@ type Role struct {
 type Rbac interface {
 	RbacQuery
 	RbacMutate
-	Check(roles []string, permission string) bool
-	CheckDomain(roles []string, domain *string, permission string) bool
+	Check(user string, roles []string, permission string) bool
+	CheckDomain(user string, roles []string, domain *string, permission string) bool
 }
 
 type RbacQuery interface {

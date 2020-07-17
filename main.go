@@ -14,12 +14,15 @@ import (
 	"github.com/JeremyMarshall/gqlgen-jwt/graph"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/generated"
 	"github.com/JeremyMarshall/gqlgen-jwt/graph/model"
+	"github.com/JeremyMarshall/gqlgen-jwt/rbac/dummy"
 	"github.com/JeremyMarshall/gqlgen-jwt/rbac/gorbac"
 	"github.com/JeremyMarshall/gqlgen-jwt/rbac/types"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
-	"github.com/namsral/flag"
+
+	// "github.com/namsral/flag"
+	"github.com/integrii/flaggy"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
@@ -78,7 +81,8 @@ type RbacDomainMiddlewareFunc func(ctx context.Context, obj interface{}, next gr
 
 func RbacMiddleware(rbacChecker types.Rbac) RbacMiddlewareFunc {
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, rbac model.Rbac) (res interface{}, err error) {
-		if !rbacChecker.Check(GetCurrentUser(ctx).Roles, rbac.String()) {
+		user := GetCurrentUser(ctx)
+		if !rbacChecker.Check(user.User, user.Roles, rbac.String()) {
 			// block calling the next resolver
 			return nil, fmt.Errorf("Access denied")
 		}
@@ -93,7 +97,8 @@ func RbacDomainMiddleware(rbacChecker types.Rbac) RbacDomainMiddlewareFunc {
 
 		if args, ok := obj.(map[string]interface{}); ok {
 			if domain, ok := args[domainString.String()].(string); ok {
-				if rbacChecker.CheckDomain(GetCurrentUser(ctx).Roles, &domain, rbac.String()) {
+				user := GetCurrentUser(ctx)
+				if rbacChecker.CheckDomain(user.User, user.Roles, &domain, rbac.String()) {
 					return next(ctx)
 				}
 			}
@@ -106,33 +111,76 @@ type opts struct {
 	Port       string
 	GorbacYaml string
 	JwtSecret  string
+
+	SubGoRbac    *flaggy.Subcommand
+	SubDummyRbac *flaggy.Subcommand
 }
 
-func NewOpts() *opts {
-	o := &opts{}
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
 
-	flag.StringVar(&o.Port, "port", graph.DefaultPort, "Port number")
-	flag.StringVar(&o.JwtSecret, "jwtSecret", graph.JwtSecret, "JWT Secret")
-	flag.StringVar(&o.GorbacYaml, "gorbacYaml", graph.GorbacYaml, "RBAC yaml")
+func NewOpts(argv []string) *opts {
+	o := &opts{
+		Port:       GetEnv("PORT", graph.DefaultPort),
+		JwtSecret:  GetEnv("JWTSECRET", graph.JwtSecret),
+		GorbacYaml: GetEnv("GORBACTYAML", graph.GorbacYaml),
+	}
 
-	flag.Parse()
+	// Set your program's name and description.  These appear in help output.
+	flaggy.SetName("gqlgen-jwt")
+	flaggy.SetDescription("A little of JWT and gqlgen")
+
+	// Add a flag to the main program (this will be available in all subcommands as well).
+	flaggy.String(&o.Port, "p", "port", "The port to listen on")
+	flaggy.String(&o.JwtSecret, "j", "jwt-secret", "The secret to seed JWT tokens")
+
+	// Create any subcommands and set their parameters.
+	o.SubGoRbac = flaggy.NewSubcommand("gorbac")
+	o.SubGoRbac.Description = "Use gorbac for rbac"
+	// Add a flag to the subcommand.
+	o.SubGoRbac.String(&o.GorbacYaml, "y", "rbac-yaml", "Yaml file for gorbac source")
+
+	// Create any subcommands and set their parameters.
+	o.SubDummyRbac = flaggy.NewSubcommand("dummy")
+	o.SubDummyRbac.Description = "Use dummy rbac"
+
+	// Set the version and parse all inputs into variables.
+	//   flaggy.SetVersion(version)
+	flaggy.AttachSubcommand(o.SubGoRbac, 1)
+	flaggy.AttachSubcommand(o.SubDummyRbac, 1)
+	flaggy.ParseArgs(argv)
+
+	if !(o.SubGoRbac.Used || o.SubDummyRbac.Used) {
+		flaggy.ShowHelpAndExit("Please supply a subcommand")
+	}
 
 	return o
 }
 
 func main() {
 
-	opts := NewOpts()
+	opts := NewOpts(os.Args[1:])
 
-	f, err := os.Open(opts.GorbacYaml)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
+	var rbac types.Rbac
 
-	rbac, err := gorbac.NewRbac(f)
-	if err != nil {
-		log.Fatal(err)
+	if opts.SubGoRbac.Used {
+
+		f, err := os.Open(opts.GorbacYaml)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+
+		rbac, err = gorbac.NewRbac(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if opts.SubDummyRbac.Used {
+		rbac = &dummy.Dummy{}
 	}
 
 	resolver := &graph.Resolver{
