@@ -106,7 +106,7 @@ func appendIfMissing(slice []string, i *string) []string {
 	}
 	return append(slice, *i)
 }
-func (r *Rbac) Check(roles []string, permission string) bool {
+func (r *Rbac) Check(user string, roles []string, permission string) bool {
 
 	kebabPermission := strcase.ToKebab(permission)
 
@@ -120,11 +120,11 @@ func (r *Rbac) Check(roles []string, permission string) bool {
 	return false
 }
 
-func (r *Rbac) CheckDomain(roles []string, domain *string, permission string) bool {
+func (r *Rbac) CheckDomain(user string, roles []string, domain *string, permission string) bool {
 	if domain == nil {
 		return false
 	}
-	return r.Check(roles, fmt.Sprintf("%s-%s", *domain, permission))
+	return r.Check(user, roles, fmt.Sprintf("%s-%s", *domain, permission))
 }
 
 func (r *Rbac) GetRoles(name *string) (map[string]types.Role, error) {

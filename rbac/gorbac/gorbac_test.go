@@ -84,17 +84,17 @@ roles:
 		})
 		Context("Valid role and permission", func() {
 			It("should succeed", func() {
-				Expect(rbac.Check([]string{"editor"}, "add-text")).To(BeTrue())
+				Expect(rbac.Check("user", []string{"editor"}, "add-text")).To(BeTrue())
 			})
 		})
 		Context("Invalid role and valid permission", func() {
 			It("should fail", func() {
-				Expect(rbac.Check([]string{"invalid", "invalid2"}, "add-text")).To(BeFalse())
+				Expect(rbac.Check("user", []string{"invalid", "invalid2"}, "add-text")).To(BeFalse())
 			})
 		})
 		Context("Valid role and invalid permission", func() {
 			It("should fail", func() {
-				Expect(rbac.Check([]string{"editor", "photographer"}, "invalid")).To(BeFalse())
+				Expect(rbac.Check("user", []string{"editor", "photographer"}, "invalid")).To(BeFalse())
 			})
 		})
 		Context("Get all roles", func() {
